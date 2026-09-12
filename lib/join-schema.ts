@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { EMAIL_PATTERN, LIMITS, NAME_PATTERN, PHOTO_POSITION_PATTERN, normalizeEmail } from "@/lib/join-rules";
+import { EMAIL_PATTERN, LIMITS, NAME_PATTERN, PHOTO_POSITION_PATTERN, normalizeEmail, normalizeMultiline } from "@/lib/join-rules";
 import { questions } from "@/lib/survey";
 
 // Required: the email, and, for a card on the board, a name and photo. Everything else is optional.
@@ -13,11 +13,16 @@ export const emailSchema = z
 const optionalText = (max: number) =>
   z.string().trim().max(max, `keep it under ${max} characters.`).optional().transform(value => value || undefined);
 
+/** Like optionalText, but line breaks are kept so a bio can have paragraphs. */
+const optionalMultilineText = (max: number) =>
+  z.string().transform(normalizeMultiline).pipe(z.string().max(max, `keep it under ${max} characters.`))
+    .optional().transform(value => value || undefined);
+
 export const cardSchema = z.object({
   name: z.string().trim().min(1, "add your name.").regex(NAME_PATTERN, "first name and last initial, like Jason T."),
   note: optionalText(LIMITS.note),
   tagline: optionalText(LIMITS.tagline),
-  bio: optionalText(LIMITS.bio),
+  bio: optionalMultilineText(LIMITS.bio),
   project: optionalText(LIMITS.project),
   interests: z.array(z.string().trim().min(1).max(LIMITS.interest))
     .max(LIMITS.interestsMax, `${LIMITS.interestsMax} max.`)

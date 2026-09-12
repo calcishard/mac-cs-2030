@@ -90,7 +90,7 @@ img{display:block;max-width:100%}
 .profile-meta{display:block;margin-bottom:17px;font-size:11px;letter-spacing:.055em;color:#76736e}
 .profile-copy [data-slot="dialog-title"]{font-family:"Caveat",cursive;font-size:55px;font-weight:500;line-height:1.1;letter-spacing:-1.5px}
 .profile-copy [data-slot="dialog-description"]{margin-top:7px;color:var(--maroon);font-size:16px;line-height:1.5}
-.profile-bio{margin-top:23px;font-size:15px;line-height:1.75;color:#4e4c47}
+.profile-bio{margin-top:23px;font-size:15px;line-height:1.75;color:#4e4c47;white-space:pre-line}
 .profile-detail{margin-top:20px}
 .profile-detail h3{font-size:12px;font-weight:500;color:#7b7871}
 .profile-detail p{margin-top:3px;font-size:14px;line-height:1.6}
@@ -598,7 +598,7 @@ textarea.join-input{min-height:96px;resize:vertical;line-height:1.6}
 .review-group h3 button{padding:0;border:0;background:none;font-size:12px;color:var(--maroon)}
 .review-group dl{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:9px 22px;margin:12px 0 0;font-size:14px;line-height:1.5}
 .review-group dt{color:#6d6a63}
-.review-group dd{margin:0;font-weight:500;overflow-wrap:anywhere}
+.review-group dd{margin:0;font-weight:500;overflow-wrap:anywhere;white-space:pre-line}
 .review-muted{margin-top:12px;font-size:14px;color:#8a867d}
 .review-list+.join-field{margin-top:32px}
 .join-actions{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:44px;padding-top:22px;border-top:1px solid #e7e6df}
@@ -643,7 +643,7 @@ textarea.join-input{min-height:96px;resize:vertical;line-height:1.6}
 .admin-date{font-size:12px;font-weight:400;color:#8a867d}
 .admin-flag{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;background:#fbeaea;color:var(--destructive);font-size:12px;font-weight:500}
 .admin-tagline{margin-top:4px;color:var(--maroon)}
-.admin-bio{margin-top:10px;font-size:14px;line-height:1.7;color:#4e4c47}
+.admin-bio{margin-top:10px;font-size:14px;line-height:1.7;color:#4e4c47;white-space:pre-line}
 .admin-details dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 16px;margin:12px 0 0;font-size:14px}
 .admin-details dt{color:#7b7871}
 .admin-details dd{margin:0}

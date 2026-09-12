@@ -1,12 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { EMAIL_PATTERN, NAME_PATTERN, PHOTO_POSITION_PATTERN, formatName, normalizeEmail, sniffImageType } from "../lib/join-rules.ts";
+import { EMAIL_PATTERN, NAME_PATTERN, PHOTO_POSITION_PATTERN, formatName, normalizeEmail, normalizeMultiline, sniffImageType } from "../lib/join-rules.ts";
 
 test("emails are trimmed and lowercased, and only their shape is checked", () => {
   assert.equal(normalizeEmail("  SmithJ12@McMaster.ca "), "smithj12@mcmaster.ca");
   // Admins decide whether an address is really a McMaster one.
   for (const valid of ["smithj12@mcmaster.ca", "someone@gmail.com"]) assert.ok(EMAIL_PATTERN.test(valid), valid);
   for (const invalid of ["smithj12", "smith j@mcmaster.ca", "a@b", "@mcmaster.ca"]) assert.ok(!EMAIL_PATTERN.test(invalid), invalid);
+});
+
+test("multiline text keeps its line breaks but not extra blank lines", () => {
+  assert.equal(normalizeMultiline("  first line\nsecond line  "), "first line\nsecond line");
+  assert.equal(normalizeMultiline("one\r\n\r\ntwo\rthree"), "one\n\ntwo\nthree");
+  assert.equal(normalizeMultiline("one   \n\n\n\n  two"), "one\n\n  two");
+  assert.equal(normalizeMultiline("\n \n"), "");
 });
 
 test("names are tidied into first name and last initial", () => {

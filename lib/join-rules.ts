@@ -19,6 +19,10 @@ export const PHOTO_POSITION_PATTERN = /^(?:100|\d{1,2})% (?:100|\d{1,2})%$/;
 /** "  SmithJ12@McMaster.ca " → "smithj12@mcmaster.ca" */
 export const normalizeEmail = (value: string) => value.trim().toLowerCase();
 
+/** Keeps line breaks, but "\r\n" → "\n", no trailing spaces, and at most one blank line in a row. */
+export const normalizeMultiline = (value: string) =>
+  value.replace(/\r\n?/g, "\n").replace(/[ \t]+$/gm, "").replace(/\n{3,}/g, "\n\n").trim();
+
 const capitalize = (word: string) => word.charAt(0).toLocaleUpperCase() + word.slice(1);
 
 /** "jason tran" → "Jason T.", "mary ann s" → "Mary Ann S." */
