@@ -1,12 +1,12 @@
-# Name search and rotating polaroids
+# The polaroid board
 
-The landing page shows up to six people. The search in the upper-right corner searches the entire `people` array in `lib/class-profile.ts`, including people who are not currently on the board. Choosing a result opens that person's profile. Arrow keys, Enter, Escape, and the clear button work through the existing combobox component.
+The landing page shows up to six approved classmates. Empty slots show an "add yours" card that links to `/join`. The search in the upper-right corner searches every approved classmate, including people who are not currently on the board. Choosing a result opens that person's profile. Arrow keys, Enter, Escape, and the clear button work through the existing combobox component.
 
 Search ignores letter case, extra spaces, periods, apostrophes, and common accent marks. First names, surnames, and partial names work. Every matching record remains in the results, even when two people have exactly the same name. Each result also shows its photo and tagline.
 
-## Adding people
+## Where people come from
 
-Keep each person's `id` unique; `name` does not need to be unique. For example, two classmates may both have `name: "Alex Chen"` while using IDs `"alex-chen-1"` and `"alex-chen-2"`. Keep the other existing profile fields when adding a record. The current data file is a source-code array, so adding people still requires saving that file and rebuilding the site.
+People come from approved submissions in the database, shuffled on each page load. See `START_HERE.md` for the join and approval flow. Names do not need to be unique; each person has their own random ID.
 
 ## Rotation
 
@@ -16,16 +16,23 @@ Keep each person's `id` unique; `name` does not need to be unique. For example, 
 - Rotation continues while a card is hovered or keyboard-focused, the search is being used, a profile is open, or another site section is selected. The open profile stays on the person you selected while the board changes behind it.
 - Only the pause button beside search stops rotation until resumed. Pausing also cancels any pending card replacement; a flash already on screen finishes fading.
 - The operating system's reduced-motion setting suppresses the flash animation through CSS; the people continue rotating and the pause button stays available.
-- The app does not pause when the browser tab is hidden, although browsers can slow or suspend background timers themselves.
 
 To adjust timing, edit `nextCardDelay` in `lib/people-board.ts`. To adjust the flash/fade, edit `.polaroid-flash` and `@keyframes polaroid-flash-reveal` in `app/globals.css`.
 
+## Dragging
+
+- Cards land on the board one after another when the page opens.
+- Any card can be picked up and thrown. It slows down quickly and bounces off the window edges. A plain click still opens the profile; a drag does not.
+- The last card moved sits on top. Positions reset when the page reloads.
+- Mouse and pen can always drag. Touch drags only on the full-window layout (at least 801 × 600 px); on smaller screens touch scrolls the page instead.
+- With reduced motion turned on, a thrown card simply stops where it is dropped.
+
+To tune the feel, edit the constants at the top of `components/draggable-slot.tsx` (`FRICTION`, `RESTITUTION`, `MAX_SPEED`).
+
 ## Checks
 
-Run the focused search and selection checks using the project's supported Node version:
-
 ```sh
-node --experimental-strip-types --test tests/people-board.test.mjs
+node --test tests/*.test.mjs
 ```
 
-For a manual check, hover or keyboard-focus a card and wait for several changes. Keep typing in search or leave its results open; rotation should continue. Open a profile and confirm that its details stay on the selected person while the board changes behind it. Close it; focus should return to the trigger or search. Pause with the button, interact with search and switch site sections, and confirm the cards stay still until you press Resume. Try the search at a narrow window width.
+For a manual check, hover or keyboard-focus a card and wait for several changes. Open a profile and confirm that its details stay on the selected person while the board changes behind it. Close it; focus should return to the trigger or search. Throw a card at each window edge and confirm no scrollbars appear. Try the search at a narrow window width.

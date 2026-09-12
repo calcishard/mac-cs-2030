@@ -1,96 +1,78 @@
 # Mac CS 2030 — start here
 
-This is the source for the version 2 photo-board redesign: clickable Polaroid profiles, a separate class-profile survey tab, and an About page.
+The class site: a board of clickable polaroid profiles, a class profile of survey charts, an About page, and a `/join` form that feeds both.
 
-Live site: https://mac-cs-2030.jasontran2134.chatgpt.site
-Intended GitHub repository: https://github.com/calcishard/mac-cs-2030
-Source commit: 43f8d6d3ecbb53156d85961cfab03a0ea8de842b
-
-## Upload this source to GitHub yourself
-
-This is an alternative if the ChatGPT GitHub connection still cannot access your repository. This archive has not itself been uploaded to GitHub.
-
-1. Extract the ZIP. The source is inside the `mac-cs-2030` folder.
-2. With Git installed, clone your GitHub repository into a separate folder:
-
-   ```sh
-   git clone https://github.com/calcishard/mac-cs-2030.git mac-cs-2030-github
-   ```
-
-3. Copy the **contents** of the extracted `mac-cs-2030` folder into `mac-cs-2030-github`. Include the dotfiles such as `.gitignore`, `.npmrc`, and the `.openai` folder. Keep the clone's `.git` folder. The source ZIP contains no `.git` folder. If your GitHub repository already contains work beyond its initial README, review any file conflicts before replacing files.
-4. Open a terminal in `mac-cs-2030-github`, then run:
-
-   ```sh
-   git add .
-   git diff --cached --stat
-   git commit -m "Add Mac CS 2030 class website"
-   git push origin HEAD
-   ```
-
-Git may ask you to authenticate to your GitHub account. If it asks for an author name/email, configure those with your own details. This uploads the source; it does not deploy the website or change the repository's visibility. Later GitHub changes will not automatically update the existing hosted site.
+Repository: https://github.com/calcishard/mac-cs-2030
 
 ## Main files
 
 | What you want to change | File |
 | --- | --- |
-| Names, bios, interests, and profile photos | `lib/class-profile.ts`, in `people` |
-| Survey questions and chart values | `lib/class-profile.ts`, in `chapters` |
-| Shared sample response total, page text, and profile dialog | `app/page.tsx` |
+| Survey questions, answer options, chart titles, and which charts each tab shows | `lib/survey.ts` |
+| Form field limits and the name/email rules | `lib/join-rules.ts`, validated by `lib/join-schema.ts` |
+| The join form, its live polaroid preview, and the success animation | `components/join/` |
+| Home page: board, profile dialog, charts, About text | `components/home.tsx` |
+| Dragging and throwing polaroids | `components/draggable-slot.tsx` |
+| The admin review page | `components/admin.tsx`, `app/admin/page.tsx` |
+| Database tables | `db/schema.ts`, with migrations in `drizzle/` |
 | Layout, colours, fonts, and responsive styles | `app/globals.css` |
 | Browser title and description | `app/layout.tsx` |
-| Images | `public/` and `public/photos/` |
 
-## Add a classmate
+## How people get on the board
 
-In `lib/class-profile.ts`, copy an existing object in the `people` array, give it a unique `id`, and replace the name, initials, tagline, bio, project, offline interests, and short `note`.
+1. A classmate fills in `/join` with their full Mac email, their polaroid card (or opts out of the board), and the class profile questions.
+2. The submission is saved as **pending**. Each email can submit once; the form says so if the email is already used.
+3. An admin signs in at `/admin`, checks the email (non-`@mcmaster.ca` addresses are flagged), and approves or deletes it. Deleting frees the email to submit again.
+4. Approved cards appear on the board. Approved answers count toward the charts, which appear once there are 10 approved responses. Answers picked by fewer than 3 people are merged into "Something else" so no one stands out.
 
-Put their photo in `public/photos/`, then use a path starting at `/photos/`:
+Emails are never sent to visitors; the board uses a separate random ID for each person.
 
-```ts
-photo: "/photos/jason.jpg",
-photoAlt: "Jason outdoors on campus",
-photoPosition: "50% 40%",
+## Admin password
+
+The admin page is locked with the `ADMIN_PASSWORD` secret.
+
+- Locally, it lives in `.dev.vars` (ignored by Git). Restart the dev server after changing it.
+- In production, set it once with `pnpm wrangler secret put ADMIN_PASSWORD`.
+
+## Database
+
+The site uses Cloudflare D1 (SQLite). Photos are shrunk in the browser to about 300 KB and stored in the `photos` table.
+
+After changing `db/schema.ts`:
+
+```sh
+pnpm db:generate        # writes a new SQL migration into drizzle/
+pnpm db:migrate:local   # applies it to the local preview database
 ```
 
-`photoPosition` sets the CSS crop position. Keep all required fields in the object, including `color`, `ink`, and `interest`. Without a `photo`, the card displays initials. The layout switches to extra rows when there are more than six people. Keep at least one person in the array; the current profile dialog expects a non-empty list.
-
-The current UI identifies every profile as a fictional sample. Once you have real submitted profiles, update the sample labels and the About-page explanation in `app/page.tsx` accurately. If real and sample profiles are mixed, add a per-profile sample flag before removing labels globally.
-
-The current UI does not store personal website links: the dialog says no personal site has been added. A link field and rendered anchor would need to be added to support those links.
-
-## Add survey data
-
-The `chapters` array contains the sample questions, bar labels/counts, featured statistics, and donut-chart counts.
-
-The current demo uses `const sampleTotal = 48` near the top of `app/page.tsx`. Update that total together with the counts. The bar questions currently assume one answer per respondent, so their counts should sum to the total. Featured and donut counts must be between zero and the total.
-
-If individual questions have different response totals, add question-specific denominators before displaying those results. The current demo does not model missing answers or multiple-choice questions with multiple selections.
-
-Sample notices and some question wording also live in `app/page.tsx`. Keep sample notices until the results are real, then describe the real survey dates and response counts. Co-op is a placeholder page.
-
-There is no submission form, database-backed editor, CSV importer, or automatic Google Forms sync in this version. Adding data means editing the source and republishing it.
+`pnpm deploy` applies pending migrations to the live database before deploying.
 
 ## Run locally
 
 Use Node.js 22.13.0 or newer and pnpm 11.25.0, matching `package.json`.
 
-From the extracted project directory:
-
 ```sh
 pnpm install --frozen-lockfile
+pnpm db:migrate:local
 pnpm dev
 ```
 
-Open the local URL printed by the dev server. To check a production build:
+Open the local URL printed by the dev server. Checks:
 
 ```sh
+node --test tests/*.test.mjs
+pnpm lint
 pnpm build
 ```
 
-Dependencies are not included in this ZIP. A downloaded checkout defaults to the portable runtime; local-only runtime state and build output are excluded. The original starter's `README.md` contains more framework information. The project is a Vinext/React/TypeScript app, so uploading it as-is to GitHub Pages does not host the application.
+## Deploy to Cloudflare
+
+`wrangler.jsonc` holds the Worker name and the D1 binding. Sign in once with `pnpm wrangler login`, then:
+
+```sh
+pnpm deploy
+```
 
 ## Images and fonts
 
-Photo attribution appears in the site's About tab. Retain those credits while using the bundled photos. The desk, camera, and hiking sample photos are CC0; the campus photo is credited to Mathew Ingram under CC BY 2.0. Font licence files are in `public/fonts/`; starter and vendor licences are preserved in the source tree.
-
-This ZIP includes source and assets from the published redesign, plus this guide. It excludes credentials, installed dependencies, Git metadata, and generated build output.
+The campus photo on the About page is credited to Mathew Ingram under CC BY 2.0. The desk, camera, and hiking photos in `public/photos/` are CC0 samples. Font licence files are in `public/fonts/`; starter and vendor licences are preserved in the source tree.
