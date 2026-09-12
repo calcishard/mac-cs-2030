@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, Pause, Play, Plus, X } from "lucid
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DraggableSlot } from "@/components/draggable-slot";
+import { AboutDevelopers } from "@/components/about-developers";
 import { PeopleSearch } from "@/components/people-search";
 import { BOARD_SIZE, useRotatingPeople } from "@/hooks/use-rotating-people";
 import type { Person } from "@/lib/class-profile";
@@ -209,7 +210,7 @@ export function Home({ people, survey }: { people: Person[]; survey: SurveySumma
 
       <TabsContent value="about" className="inner-page about-page">
         <div className="inner-heading"><p>about this site</p><h1>just our little<br/>corner of the internet.</h1></div>
-        <div className="about-layout"><div className="about-text"><p>For the people starting computer science at McMaster in fall 2026. A place to put faces to names, find each other’s projects, and look back at our time here.</p><p>We hope to update this website sometime before we graduate to add all the experiences we&apos;ve had while being a part of Mac.</p><p>The idea comes from student-built sites like <a href="https://syde30.com/" target="_blank" rel="noreferrer">SYDE ’30</a>, alongside the <a href="https://www.syde27classprofile.ca/" target="_blank" rel="noreferrer">’27</a> and <a href="https://www.syde28.com/" target="_blank" rel="noreferrer">’28</a> class profiles.</p><div className="about-note"><p className="handwritten">a work in progress.</p><p></p></div></div><figure className="about-postcard"><img src="/campus.jpg" width="1280" height="960" alt="University Hall at McMaster University" loading="lazy"/><figcaption>our class at [location]</figcaption></figure></div>
+        <div className="about-layout"><div className="about-text"><p>For the people starting computer science at McMaster in fall 2026. A place to put faces to names, find each other’s projects, and look back at our time here.</p><p>We hope to update this website sometime before we graduate to add all the experiences we&apos;ve had while being a part of Mac.</p><p>The idea comes from student-built sites like <a href="https://syde30.com/" target="_blank" rel="noreferrer">SYDE ’30</a>, alongside the <a href="https://www.syde27classprofile.ca/" target="_blank" rel="noreferrer">’27</a> and <a href="https://www.syde28.com/" target="_blank" rel="noreferrer">’28</a> class profiles.</p><AboutDevelopers/><div className="about-note"><p className="handwritten">a work in progress.</p><p></p></div></div><figure className="about-postcard"><img src="/campus.jpg" width="1280" height="960" alt="University Hall at McMaster University" loading="lazy"/><figcaption>our class at [location]</figcaption></figure></div>
       </TabsContent>
     </main>
   </Tabs></MotionConfig>;
