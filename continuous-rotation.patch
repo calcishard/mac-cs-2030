@@ -1,0 +1,203 @@
+diff --git a/app/page.tsx b/app/page.tsx
+index ebda1f7a025ef8c49196da51bf32c8736b216262..a88558c4e8e6a06c18affb4256b4d57ed2faff1d 100644
+--- a/app/page.tsx
++++ b/app/page.tsx
+@@ -39,20 +39,13 @@ export default function Home() {
+   const [view, setView] = useState("people");
+   const [personIndex, setPersonIndex] = useState(0);
+   const [dialogOpen, setDialogOpen] = useState(false);
+-  const [searchActive, setSearchActive] = useState(false);
+-  const [boardHovered, setBoardHovered] = useState(false);
+-  const [boardFocused, setBoardFocused] = useState(false);
+   const [rotationPaused, setRotationPaused] = useState(false);
+   const profileTrigger = useRef<HTMLElement | null>(null);
+   const person = people[personIndex];
+-  const { cards, reducedMotion } = useRotatingPeople(people,
+-    view !== "people" || dialogOpen || searchActive || boardHovered || boardFocused || rotationPaused,
+-  );
++  const { cards } = useRotatingPeople(people, rotationPaused);
+ 
+   const changeView = (value: string) => {
+     setView(value);
+-    setBoardHovered(false);
+-    setBoardFocused(false);
+     window.scrollTo({top:0, behavior:"instant"});
+   };
+ 
+@@ -66,7 +59,7 @@ export default function Home() {
+         <TabsTrigger value="about">about</TabsTrigger>
+       </TabsList>
+       {view === "people" ? <div className="people-tools">
+-        <PeopleSearch people={people} onActivityChange={setSearchActive} onSelect={(member, input) => {
++        <PeopleSearch people={people} onSelect={(member, input) => {
+           const index = people.findIndex(candidate => candidate.id === member.id);
+           if (index < 0) return;
+           profileTrigger.current = input;
+@@ -74,12 +67,12 @@ export default function Home() {
+           setDialogOpen(true);
+         }} />
+         <button className="rotation-toggle" type="button"
+-          disabled={people.length < 2 || reducedMotion}
+-          aria-pressed={rotationPaused || reducedMotion}
+-          aria-label={reducedMotion ? "Card rotation is off for reduced motion" : rotationPaused ? "Resume rotating cards" : "Pause rotating cards"}
+-          title={reducedMotion ? "Reduced motion is on" : rotationPaused ? "Resume cards" : "Pause cards"}
++          disabled={people.length < 2}
++          aria-pressed={rotationPaused}
++          aria-label={rotationPaused ? "Resume rotating cards" : "Pause rotating cards"}
++          title={rotationPaused ? "Resume cards" : "Pause cards"}
+           onClick={() => setRotationPaused(paused => !paused)}>
+-          {rotationPaused || reducedMotion ? <Play size={15} aria-hidden="true" /> : <Pause size={15} aria-hidden="true" />}
++          {rotationPaused ? <Play size={15} aria-hidden="true" /> : <Pause size={15} aria-hidden="true" />}
+         </button>
+       </div> : <span className="header-location">mcmaster university<br/><span>hamilton, ontario</span></span>}
+     </header>
+@@ -88,15 +81,11 @@ export default function Home() {
+       <TabsContent value="people" className="people-page">
+         <div className="board-heading"><h1>computer science</h1></div>
+         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+-          <section className="photo-board" aria-label="Mac CS student webring"
+-            onFocusCapture={() => setBoardFocused(true)}
+-            onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setBoardFocused(false); }}>
++          <section className="photo-board" aria-label="Mac CS student webring">
+             <div className="year-type" aria-hidden="true"><span>20</span><span>30</span></div>
+             <div className="polaroid-spread">
+               {cards.map(({ person: member, revision }, slot) => <DialogTrigger asChild key={slot}>
+                 <button className={"polaroid photo-"+slot} data-person-id={member.id}
+-                  onPointerEnter={event => { if (event.pointerType !== "touch") setBoardHovered(true); }}
+-                  onPointerLeave={() => setBoardHovered(false)}
+                   onClick={(event) => {profileTrigger.current=event.currentTarget;setPersonIndex(people.findIndex(candidate => candidate.id === member.id));}} aria-label={"Open "+member.name+"’s profile"}>
+                   <span className="photo-window"><ProfilePhoto person={member} eager/><span className="photo-hover-label">say hello <ArrowUpRight size={17}/></span></span>
+                   <span className="photo-caption"><span className="photo-name">{member.name.toLowerCase()}</span></span>
+diff --git a/components/people-search.tsx b/components/people-search.tsx
+index 8f8113e488a9605ca0ca4e544dd9333b119f35df..fac6db10cd745703ee601d453f12f6491f44c981 100644
+--- a/components/people-search.tsx
++++ b/components/people-search.tsx
+@@ -1,6 +1,6 @@
+ "use client";
+ 
+-import { useEffect, useRef, useState } from "react";
++import { useRef, useState } from "react";
+ import { Search } from "lucide-react";
+ import {
+   Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList,
+@@ -11,21 +11,14 @@ import { searchPeople } from "@/lib/people-board";
+ type Props = {
+   people: readonly Person[];
+   onSelect: (person: Person, input: HTMLInputElement | null) => void;
+-  onActivityChange: (active: boolean) => void;
+ };
+ 
+-export function PeopleSearch({ people, onSelect, onActivityChange }: Props) {
++export function PeopleSearch({ people, onSelect }: Props) {
+   const [query, setQuery] = useState("");
+   const [open, setOpen] = useState(false);
+-  const [focused, setFocused] = useState(false);
+   const input = useRef<HTMLInputElement>(null);
+   const matches = searchPeople(people, query);
+ 
+-  useEffect(() => {
+-    onActivityChange(focused || (open && !!query.trim()));
+-    return () => onActivityChange(false);
+-  }, [focused, open, query, onActivityChange]);
+-
+   return <div className="people-search">
+     <Combobox<Person>
+       items={matches}
+@@ -58,8 +51,6 @@ export function PeopleSearch({ people, onSelect, onActivityChange }: Props) {
+         showTrigger={false}
+         showClear={!!query}
+         autoComplete="off"
+-        onFocus={() => setFocused(true)}
+-        onBlur={() => setFocused(false)}
+       >
+         <Search className="people-search-icon" size={16} aria-hidden="true" />
+       </ComboboxInput>
+diff --git a/docs/people-board.md b/docs/people-board.md
+index 30590e3b2fffb1a925cbb443849a2e423bf1dee8..49bd1c98dc6427930cdaded12f8dcf7c0dbac8af 100644
+--- a/docs/people-board.md
++++ b/docs/people-board.md
+@@ -13,8 +13,10 @@ Keep each person's `id` unique; `name` does not need to be unique. For example,
+ - Each card gets its own random delay between 4 and 9 seconds. A fresh delay is selected after each change.
+ - With more than six people, the changing card brings in someone who is not already visible. With six or fewer, two cards swap places so one person never occupies two slots. A single profile stays still.
+ - The changing card flashes briefly, then the white overlay fades away over 900 ms. Incoming photos are preloaded; slow images can add a short delay.
+-- Rotation pauses while a card is hovered or keyboard-focused, the search is being used, a profile is open, or another tab is selected. Changes are skipped while the browser tab is hidden.
+-- The pause button beside search stops rotation until resumed. The operating system's reduced-motion setting disables automatic rotation and the flash.
++- Rotation continues while a card is hovered or keyboard-focused, the search is being used, a profile is open, or another site section is selected. The open profile stays on the person you selected while the board changes behind it.
++- Only the pause button beside search stops rotation until resumed. Pausing also cancels any pending card replacement; a flash already on screen finishes fading.
++- The operating system's reduced-motion setting suppresses the flash animation through CSS; the people continue rotating and the pause button stays available.
++- The app does not pause when the browser tab is hidden, although browsers can slow or suspend background timers themselves.
+ 
+ To adjust timing, edit `nextCardDelay` in `lib/people-board.ts`. To adjust the flash/fade, edit `.polaroid-flash` and `@keyframes polaroid-flash-reveal` in `app/globals.css`.
+ 
+@@ -26,4 +28,4 @@ Run the focused search and selection checks using the project's supported Node v
+ node --experimental-strip-types --test tests/people-board.test.mjs
+ ```
+ 
+-For a manual check, search for a person, open their profile, and close it; focus should return to search. Move the pointer away from the cards and wait for several changes, then open a changed card to confirm that the name and profile agree. Check the pause button and try the search at a narrow window width.
++For a manual check, hover or keyboard-focus a card and wait for several changes. Keep typing in search or leave its results open; rotation should continue. Open a profile and confirm that its details stay on the selected person while the board changes behind it. Close it; focus should return to the trigger or search. Pause with the button, interact with search and switch site sections, and confirm the cards stay still until you press Resume. Try the search at a narrow window width.
+diff --git a/hooks/use-rotating-people.ts b/hooks/use-rotating-people.ts
+index ef8b1dac9cda9ba4a2942b6d23562d4739ffd770..779a1b50184c5e1824a6ddbdb58c0abb98c55cd8 100644
+--- a/hooks/use-rotating-people.ts
++++ b/hooks/use-rotating-people.ts
+@@ -1,16 +1,9 @@
+ "use client";
+ 
+-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
++import { useEffect, useRef, useState } from "react";
+ import type { Person } from "@/lib/class-profile";
+ import { nextCardDelay, rotatePerson } from "@/lib/people-board";
+ 
+-const motionQuery = "(prefers-reduced-motion: reduce)";
+-function subscribeToMotion(callback: () => void) {
+-  const media = window.matchMedia(motionQuery);
+-  media.addEventListener("change", callback);
+-  return () => media.removeEventListener("change", callback);
+-}
+-
+ function preloadPhoto(person: Person): Promise<void> {
+   const photo = person.photo;
+   if (!photo) return Promise.resolve();
+@@ -34,12 +27,11 @@ export function useRotatingPeople(people: readonly Person[], paused: boolean) {
+   // The first server and client renders agree; randomness begins in the timers.
+   const [cards, setCards] = useState(() => people.slice(0, 6).map(person => ({ person, revision: 0 })));
+   const currentCards = useRef(cards);
+-  const reducedMotion = useSyncExternalStore(
+-    subscribeToMotion, () => window.matchMedia(motionQuery).matches, () => false,
+-  );
+ 
+   useEffect(() => {
+-    if (paused || reducedMotion || people.length < 2) return;
++    // Only the explicit pause button stops rotation. UI interactions and
++    // section changes do not reset or cancel the independent card timers.
++    if (paused || people.length < 2) return;
+     let cancelled = false;
+     let changing = false;
+     const timers: number[] = [];
+@@ -50,7 +42,7 @@ export function useRotatingPeople(people: readonly Person[], paused: boolean) {
+ 
+     async function change(slot: number) {
+       if (cancelled) return;
+-      if (document.hidden || changing) {
++      if (changing) {
+         schedule(slot);
+         return;
+       }
+@@ -60,7 +52,7 @@ export function useRotatingPeople(people: readonly Person[], paused: boolean) {
+       const before = currentCards.current;
+       const next = rotatePerson(people, before.map(card => card.person), slot);
+       await Promise.all(next.filter((person, i) => person.id !== before[i].person.id).map(preloadPhoto));
+-      if (!cancelled && !document.hidden) {
++      if (!cancelled) {
+         const updated = next.map((person, i) => ({
+           person,
+           revision: before[i].revision + Number(person.id !== before[i].person.id),
+@@ -77,7 +69,7 @@ export function useRotatingPeople(people: readonly Person[], paused: boolean) {
+       cancelled = true;
+       timers.forEach(timer => window.clearTimeout(timer));
+     };
+-  }, [people, paused, reducedMotion]);
++  }, [people, paused]);
+ 
+-  return { cards, reducedMotion };
++  return { cards };
+ }

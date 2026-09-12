@@ -1,0 +1,486 @@
+diff --git a/app/globals.css b/app/globals.css
+index ceee5467409dd5c434166fd443bf679c05d75f7f..458449f05a3c009d97ab60dc9652dc5836858feb 100644
+--- a/app/globals.css
++++ b/app/globals.css
+@@ -531,4 +531,41 @@ img{display:block;max-width:100%}
+       .photo-credits { font-size: 10px; line-height: 1.4; }
+     }
+   }
+-}
+\ No newline at end of file
++}
++
++/* A quiet name search beside the navigation. */
++.people-tools{justify-self:end;display:flex;align-items:center;gap:8px;width:min(252px,100%);min-width:0}
++.people-search{flex:1;min-width:0}
++.people-search-field[data-slot="input-group"]{position:relative;height:34px;width:100%;min-width:0;border:0;border-bottom:1px solid #cac8c1;border-radius:0;background:transparent;box-shadow:none}
++.people-search-field[data-slot="input-group"]:focus-within{border-color:var(--maroon);box-shadow:0 1px 0 var(--maroon);--tw-ring-shadow:0 0 transparent}
++.people-search-field [data-slot="input-group-control"]{min-width:0;height:32px;padding:0 4px 0 25px;font-size:14px;line-height:1.4;background:transparent}
++.people-search-field [data-slot="input-group-addon"]{padding-right:0}
++.people-search-field input::placeholder{color:#87837b;opacity:1}
++.people-search-icon{position:absolute;left:1px;top:8px;pointer-events:none;color:var(--maroon)}
++.rotation-toggle{display:grid;place-items:center;flex-shrink:0;width:30px;height:34px;padding:0;border:0;background:transparent;color:#79746c}
++.rotation-toggle:hover{color:var(--maroon)}
++.rotation-toggle:disabled{opacity:.45;cursor:default}
++.people-search-results[data-slot="combobox-content"]{width:330px;min-width:0;max-width:calc(100vw - 32px);border:1px solid #e0ddd5;border-radius:2px;background:#fffefa;box-shadow:0 12px 35px #2520161a;--tw-ring-shadow:0 0 transparent}
++.people-search-results [data-slot="combobox-list"]{max-height:min(340px,calc(var(--available-height,70dvh) - 40px));padding:4px 6px 6px;overscroll-behavior:contain}
++.people-search-count{padding:10px 13px 4px;color:#847e73;font-size:12px}
++.people-search-result[data-slot="combobox-item"]{gap:11px;padding:8px;border-radius:1px;cursor:pointer}
++.people-search-result[data-highlighted]{background:#f0ece4}
++.people-search-result [data-slot="combobox-item-indicator"]{display:none}
++.search-avatar{display:grid;place-items:center;flex-shrink:0;width:38px;height:43px;overflow:hidden;font:500 24px/1 "Caveat",cursive}
++.search-avatar img{width:100%;height:100%;object-fit:cover}
++.search-person-copy{display:grid;min-width:0;gap:2px}
++.search-person-copy strong{font-size:14px;font-weight:500;line-height:1.4}
++.search-person-copy>span{font-size:12px;line-height:1.4;color:#817a70;overflow-wrap:anywhere}
++.people-search-empty[data-slot="combobox-empty"]{padding:17px 14px;text-align:left;color:#79746c;font-size:14px}
++
++/* One brief exposure, then the new photograph develops underneath it. */
++.polaroid-flash{position:absolute;inset:0;z-index:5;background:#fffefa;pointer-events:none;opacity:0;animation:polaroid-flash-reveal 900ms cubic-bezier(.16,1,.3,1) both}
++@keyframes polaroid-flash-reveal{0%,5%{opacity:1}100%{opacity:0}}
++.people-empty{position:relative;padding:40px 0;text-align:center;color:#79746c}
++
++@media(max-width:800px){
++  .site-header:has(.people-tools){grid-template-columns:1fr auto;row-gap:8px;padding-block:12px}
++  .site-header:has(.people-tools) .main-nav{grid-column:1/-1;grid-row:2;justify-self:center}
++  .people-tools{grid-column:2;grid-row:1;width:min(240px,48vw)}
++}
++@media(prefers-reduced-motion:reduce){.polaroid-flash{display:none}}
+diff --git a/app/page.tsx b/app/page.tsx
+index 10c0ce07ce4b3c7edcdf87223a53d6aef24102fd..ebda1f7a025ef8c49196da51bf32c8736b216262 100644
+--- a/app/page.tsx
++++ b/app/page.tsx
+@@ -1,10 +1,12 @@
+ "use client";
+ 
+ import { useRef, useState, type CSSProperties } from "react";
+-import { ArrowLeft, ArrowRight, ArrowUpRight, CornerDownRight, X } from "lucide-react";
++import { ArrowLeft, ArrowRight, ArrowUpRight, Pause, Play, X } from "lucide-react";
+ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+ import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+ import { chapters, people, type Chapter, type Person } from "@/lib/class-profile";
++import { PeopleSearch } from "@/components/people-search";
++import { useRotatingPeople } from "@/hooks/use-rotating-people";
+ 
+ const sampleTotal = 48;
+ 
+@@ -37,10 +39,22 @@ export default function Home() {
+   const [view, setView] = useState("people");
+   const [personIndex, setPersonIndex] = useState(0);
+   const [dialogOpen, setDialogOpen] = useState(false);
+-  const profileTrigger = useRef<HTMLButtonElement | null>(null);
++  const [searchActive, setSearchActive] = useState(false);
++  const [boardHovered, setBoardHovered] = useState(false);
++  const [boardFocused, setBoardFocused] = useState(false);
++  const [rotationPaused, setRotationPaused] = useState(false);
++  const profileTrigger = useRef<HTMLElement | null>(null);
+   const person = people[personIndex];
++  const { cards, reducedMotion } = useRotatingPeople(people,
++    view !== "people" || dialogOpen || searchActive || boardHovered || boardFocused || rotationPaused,
++  );
+ 
+-  const changeView = (value: string) => { setView(value); window.scrollTo({top:0, behavior:"instant"}); };
++  const changeView = (value: string) => {
++    setView(value);
++    setBoardHovered(false);
++    setBoardFocused(false);
++    window.scrollTo({top:0, behavior:"instant"});
++  };
+ 
+   return <Tabs value={view} onValueChange={changeView} className="site-tabs">
+     <a className="skip-link" href="#main">skip to content</a>
+@@ -51,30 +65,53 @@ export default function Home() {
+         <TabsTrigger value="profile">class profile</TabsTrigger>
+         <TabsTrigger value="about">about</TabsTrigger>
+       </TabsList>
+-      <span className="header-location">mcmaster university<br/><span>hamilton, ontario</span></span>
++      {view === "people" ? <div className="people-tools">
++        <PeopleSearch people={people} onActivityChange={setSearchActive} onSelect={(member, input) => {
++          const index = people.findIndex(candidate => candidate.id === member.id);
++          if (index < 0) return;
++          profileTrigger.current = input;
++          setPersonIndex(index);
++          setDialogOpen(true);
++        }} />
++        <button className="rotation-toggle" type="button"
++          disabled={people.length < 2 || reducedMotion}
++          aria-pressed={rotationPaused || reducedMotion}
++          aria-label={reducedMotion ? "Card rotation is off for reduced motion" : rotationPaused ? "Resume rotating cards" : "Pause rotating cards"}
++          title={reducedMotion ? "Reduced motion is on" : rotationPaused ? "Resume cards" : "Pause cards"}
++          onClick={() => setRotationPaused(paused => !paused)}>
++          {rotationPaused || reducedMotion ? <Play size={15} aria-hidden="true" /> : <Pause size={15} aria-hidden="true" />}
++        </button>
++      </div> : <span className="header-location">mcmaster university<br/><span>hamilton, ontario</span></span>}
+     </header>
+ 
+     <main id="main">
+       <TabsContent value="people" className="people-page">
+         <div className="board-heading"><h1>computer science</h1></div>
+         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+-          <section className={"photo-board" + (people.length > 6 ? " expanded-board" : "")} aria-label="Mac CS sample student webring">
++          <section className="photo-board" aria-label="Mac CS student webring"
++            onFocusCapture={() => setBoardFocused(true)}
++            onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setBoardFocused(false); }}>
+             <div className="year-type" aria-hidden="true"><span>20</span><span>30</span></div>
+             <div className="polaroid-spread">
+-              {people.map((member,index) => <DialogTrigger asChild key={member.id}>
+-                <button className={"polaroid photo-"+(index%6)} onClick={(event) => {profileTrigger.current=event.currentTarget;setPersonIndex(index);}} aria-label={"Open "+member.name+"’s sample profile"}>
+-                  <span className="photo-window"><ProfilePhoto person={member} eager={index<3}/><span className="photo-hover-label">say hello <ArrowUpRight size={17}/></span></span>
++              {cards.map(({ person: member, revision }, slot) => <DialogTrigger asChild key={slot}>
++                <button className={"polaroid photo-"+slot} data-person-id={member.id}
++                  onPointerEnter={event => { if (event.pointerType !== "touch") setBoardHovered(true); }}
++                  onPointerLeave={() => setBoardHovered(false)}
++                  onClick={(event) => {profileTrigger.current=event.currentTarget;setPersonIndex(people.findIndex(candidate => candidate.id === member.id));}} aria-label={"Open "+member.name+"’s profile"}>
++                  <span className="photo-window"><ProfilePhoto person={member} eager/><span className="photo-hover-label">say hello <ArrowUpRight size={17}/></span></span>
+                   <span className="photo-caption"><span className="photo-name">{member.name.toLowerCase()}</span></span>
+                   <span className="photo-note">{member.note || member.tagline}</span>
++                  {revision > 0 && <span key={revision} className="polaroid-flash" aria-hidden="true" />}
+                 </button>
+               </DialogTrigger>)}
+             </div>
++            {people.length === 0 && <p className="people-empty">No profiles yet.</p>}
+           </section>
+-          <DialogContent className="profile-dialog" showCloseButton={false} onCloseAutoFocus={(event) => {event.preventDefault();profileTrigger.current?.focus();}}>
++          {person && <DialogContent className="profile-dialog" showCloseButton={false} onCloseAutoFocus={(event) => {event.preventDefault();profileTrigger.current?.focus();}}>
+             <button className="close-dialog" onClick={() => setDialogOpen(false)} aria-label="Close profile"><X size={21}/></button>
+             <div className="profile-photo"><ProfilePhoto person={person} eager/></div>
+             <div className="profile-copy"><span className="profile-meta">mac cs ’30 / profile</span><DialogTitle>{person.name.toLowerCase()}</DialogTitle><DialogDescription>{person.tagline}</DialogDescription><p className="profile-bio">{person.bio}</p><div className="profile-detail"><h3>working on</h3><p>{person.project}</p></div><div className="profile-detail"><h3>also into</h3><p>{person.offline}</p></div><div className="ring-controls"><button onClick={() => setPersonIndex((i)=>(i+people.length-1)%people.length)} aria-label="Previous classmate"><ArrowLeft size={17}/> previous</button><span aria-live="polite">{String(personIndex+1).padStart(2,"0")} / {String(people.length).padStart(2,"0")}</span><button onClick={() => setPersonIndex((i)=>(i+1)%people.length)} aria-label="Next classmate">next <ArrowRight size={17}/></button></div></div>
+-          </DialogContent>
++          </DialogContent>}
+         </Dialog>
+       </TabsContent>  
+ 
+diff --git a/components/people-search.tsx b/components/people-search.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..8f8113e488a9605ca0ca4e544dd9333b119f35df
+--- /dev/null
++++ b/components/people-search.tsx
+@@ -0,0 +1,80 @@
++"use client";
++
++import { useEffect, useRef, useState } from "react";
++import { Search } from "lucide-react";
++import {
++  Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList,
++} from "@/components/ui/combobox";
++import type { Person } from "@/lib/class-profile";
++import { searchPeople } from "@/lib/people-board";
++
++type Props = {
++  people: readonly Person[];
++  onSelect: (person: Person, input: HTMLInputElement | null) => void;
++  onActivityChange: (active: boolean) => void;
++};
++
++export function PeopleSearch({ people, onSelect, onActivityChange }: Props) {
++  const [query, setQuery] = useState("");
++  const [open, setOpen] = useState(false);
++  const [focused, setFocused] = useState(false);
++  const input = useRef<HTMLInputElement>(null);
++  const matches = searchPeople(people, query);
++
++  useEffect(() => {
++    onActivityChange(focused || (open && !!query.trim()));
++    return () => onActivityChange(false);
++  }, [focused, open, query, onActivityChange]);
++
++  return <div className="people-search">
++    <Combobox<Person>
++      items={matches}
++      filter={null}
++      value={null}
++      inputValue={query}
++      open={open && !!query.trim()}
++      onOpenChange={setOpen}
++      onInputValueChange={(value, details) => {
++        // Selection opens the profile; it must not reopen the name dropdown.
++        if (details.reason === "item-press") return;
++        setQuery(value);
++        setOpen(!!value.trim());
++      }}
++      itemToStringLabel={person => person.name}
++      itemToStringValue={person => person.id}
++      isItemEqualToValue={(a, b) => a.id === b.id}
++      onValueChange={person => {
++        if (!person) return;
++        setOpen(false);
++        setQuery("");
++        onSelect(person, input.current);
++      }}
++    >
++      <ComboboxInput
++        ref={input}
++        className="people-search-field"
++        aria-label="Search classmates by name"
++        placeholder="find someone…"
++        showTrigger={false}
++        showClear={!!query}
++        autoComplete="off"
++        onFocus={() => setFocused(true)}
++        onBlur={() => setFocused(false)}
++      >
++        <Search className="people-search-icon" size={16} aria-hidden="true" />
++      </ComboboxInput>
++      <ComboboxContent className="people-search-results" align="end">
++        {matches.length > 0 && <p className="people-search-count">{matches.length} {matches.length === 1 ? "person" : "people"}</p>}
++        <ComboboxEmpty className="people-search-empty">No one found. Try another name.</ComboboxEmpty>
++        <ComboboxList>
++          {(person: Person) => <ComboboxItem key={person.id} value={person} className="people-search-result">
++            <span className="search-avatar" style={{ background: person.color, color: person.ink }} aria-hidden="true">
++              {person.photo ? <img src={person.photo} alt="" width="40" height="44" style={{ objectPosition: person.photoPosition || "center" }} /> : person.initials}
++            </span>
++            <span className="search-person-copy"><strong>{person.name}</strong><span>{person.tagline}</span></span>
++          </ComboboxItem>}
++        </ComboboxList>
++      </ComboboxContent>
++    </Combobox>
++  </div>;
++}
+diff --git a/docs/people-board.md b/docs/people-board.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..30590e3b2fffb1a925cbb443849a2e423bf1dee8
+--- /dev/null
++++ b/docs/people-board.md
+@@ -0,0 +1,29 @@
++# Name search and rotating polaroids
++
++The landing page shows up to six people. The search in the upper-right corner searches the entire `people` array in `lib/class-profile.ts`, including people who are not currently on the board. Choosing a result opens that person's profile. Arrow keys, Enter, Escape, and the clear button work through the existing combobox component.
++
++Search ignores letter case, extra spaces, periods, apostrophes, and common accent marks. First names, surnames, and partial names work. Every matching record remains in the results, even when two people have exactly the same name. Each result also shows its photo and tagline.
++
++## Adding people
++
++Keep each person's `id` unique; `name` does not need to be unique. For example, two classmates may both have `name: "Alex Chen"` while using IDs `"alex-chen-1"` and `"alex-chen-2"`. Keep the other existing profile fields when adding a record. The current data file is a source-code array, so adding people still requires saving that file and rebuilding the site.
++
++## Rotation
++
++- Each card gets its own random delay between 4 and 9 seconds. A fresh delay is selected after each change.
++- With more than six people, the changing card brings in someone who is not already visible. With six or fewer, two cards swap places so one person never occupies two slots. A single profile stays still.
++- The changing card flashes briefly, then the white overlay fades away over 900 ms. Incoming photos are preloaded; slow images can add a short delay.
++- Rotation pauses while a card is hovered or keyboard-focused, the search is being used, a profile is open, or another tab is selected. Changes are skipped while the browser tab is hidden.
++- The pause button beside search stops rotation until resumed. The operating system's reduced-motion setting disables automatic rotation and the flash.
++
++To adjust timing, edit `nextCardDelay` in `lib/people-board.ts`. To adjust the flash/fade, edit `.polaroid-flash` and `@keyframes polaroid-flash-reveal` in `app/globals.css`.
++
++## Checks
++
++Run the focused search and selection checks using the project's supported Node version:
++
++```sh
++node --experimental-strip-types --test tests/people-board.test.mjs
++```
++
++For a manual check, search for a person, open their profile, and close it; focus should return to search. Move the pointer away from the cards and wait for several changes, then open a changed card to confirm that the name and profile agree. Check the pause button and try the search at a narrow window width.
+diff --git a/hooks/use-rotating-people.ts b/hooks/use-rotating-people.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..ef8b1dac9cda9ba4a2942b6d23562d4739ffd770
+--- /dev/null
++++ b/hooks/use-rotating-people.ts
+@@ -0,0 +1,83 @@
++"use client";
++
++import { useEffect, useRef, useState, useSyncExternalStore } from "react";
++import type { Person } from "@/lib/class-profile";
++import { nextCardDelay, rotatePerson } from "@/lib/people-board";
++
++const motionQuery = "(prefers-reduced-motion: reduce)";
++function subscribeToMotion(callback: () => void) {
++  const media = window.matchMedia(motionQuery);
++  media.addEventListener("change", callback);
++  return () => media.removeEventListener("change", callback);
++}
++
++function preloadPhoto(person: Person): Promise<void> {
++  const photo = person.photo;
++  if (!photo) return Promise.resolve();
++  return new Promise(resolve => {
++    const image = new Image();
++    const finish = () => {
++      window.clearTimeout(timeout);
++      image.onload = null;
++      image.onerror = null;
++      resolve();
++    };
++    const timeout = window.setTimeout(finish, 2000);
++    image.onload = finish;
++    image.onerror = finish;
++    image.src = photo;
++    if (image.complete) finish();
++  });
++}
++
++export function useRotatingPeople(people: readonly Person[], paused: boolean) {
++  // The first server and client renders agree; randomness begins in the timers.
++  const [cards, setCards] = useState(() => people.slice(0, 6).map(person => ({ person, revision: 0 })));
++  const currentCards = useRef(cards);
++  const reducedMotion = useSyncExternalStore(
++    subscribeToMotion, () => window.matchMedia(motionQuery).matches, () => false,
++  );
++
++  useEffect(() => {
++    if (paused || reducedMotion || people.length < 2) return;
++    let cancelled = false;
++    let changing = false;
++    const timers: number[] = [];
++
++    function schedule(slot: number) {
++      timers[slot] = window.setTimeout(() => void change(slot), nextCardDelay());
++    }
++
++    async function change(slot: number) {
++      if (cancelled) return;
++      if (document.hidden || changing) {
++        schedule(slot);
++        return;
++      }
++      // Serialize only the image-loading/commit step so two timers cannot choose
++      // the same incoming person. Each slot still owns its independent delay.
++      changing = true;
++      const before = currentCards.current;
++      const next = rotatePerson(people, before.map(card => card.person), slot);
++      await Promise.all(next.filter((person, i) => person.id !== before[i].person.id).map(preloadPhoto));
++      if (!cancelled && !document.hidden) {
++        const updated = next.map((person, i) => ({
++          person,
++          revision: before[i].revision + Number(person.id !== before[i].person.id),
++        }));
++        currentCards.current = updated;
++        setCards(updated);
++      }
++      changing = false;
++      if (!cancelled) schedule(slot);
++    }
++
++    currentCards.current.forEach((_, slot) => schedule(slot));
++    return () => {
++      cancelled = true;
++      timers.forEach(timer => window.clearTimeout(timer));
++    };
++  }, [people, paused, reducedMotion]);
++
++  return { cards, reducedMotion };
++}
+diff --git a/lib/people-board.ts b/lib/people-board.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..c657c529a5e7b4510a42ff8e2b03725df3d83193
+--- /dev/null
++++ b/lib/people-board.ts
+@@ -0,0 +1,39 @@
++type IdentifiedPerson = { id: string; name: string };
++
++function normalizeName(value: string) {
++  return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
++    .toLowerCase().replace(/[.'’]/g, "").trim().replace(/\s+/g, " ");
++}
++
++/** Keep every matching record: names are searchable labels, IDs are identities. */
++export function searchPeople<T extends IdentifiedPerson>(people: readonly T[], query: string): T[] {
++  const words = normalizeName(query).split(" ").filter(Boolean);
++  if (!words.length) return [];
++  return people.filter(person => {
++    const name = normalizeName(person.name);
++    return words.every(word => name.includes(word));
++  });
++}
++
++export function nextCardDelay(random = Math.random) {
++  return 4000 + Math.floor(random() * 5000);
++}
++
++/** Change one slot without duplicating someone already on the board. */
++export function rotatePerson<T extends IdentifiedPerson>(
++  people: readonly T[], visible: readonly T[], slot: number, random = Math.random,
++): T[] {
++  const next = [...visible];
++  if (!visible[slot] || people.length < 2) return next;
++  const shown = new Set(visible.map(person => person.id));
++  const available = people.filter(person => !shown.has(person.id));
++  if (available.length) {
++    next[slot] = available[Math.floor(random() * available.length)];
++  } else if (visible.length > 1) {
++    // With six or fewer people, swap two positions instead of repeating a person.
++    const alternatives = visible.map((_, index) => index).filter(index => index !== slot);
++    const other = alternatives[Math.floor(random() * alternatives.length)];
++    [next[slot], next[other]] = [next[other], next[slot]];
++  }
++  return next;
++}
+diff --git a/tests/people-board.test.mjs b/tests/people-board.test.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..3b14bcf4dad502b9c98d970ff1d53449c193eeea
+--- /dev/null
++++ b/tests/people-board.test.mjs
+@@ -0,0 +1,73 @@
++import assert from "node:assert/strict";
++import test from "node:test";
++import { nextCardDelay, rotatePerson, searchPeople } from "../lib/people-board.ts";
++
++const people = [
++  { id: "alex-1", name: "Alex Chen" },
++  { id: "alex-2", name: "Alex Chen" },
++  { id: "alex-3", name: "Alex Patel" },
++  { id: "elodie", name: "Élodie Chen" },
++  { id: "maya", name: "Maya P." },
++  { id: "sam", name: "Sam R." },
++  { id: "priya", name: "Priya S." },
++  { id: "noah", name: "Noah L." },
++];
++
++test("search returns every matching record, including identical full names", () => {
++  assert.deepEqual(searchPeople(people, "Alex Chen").map(p => p.id), ["alex-1", "alex-2"]);
++  assert.equal(searchPeople(people, "alex").length, 3);
++});
++
++test("search handles partial names, spaces, case, initials, and accents", () => {
++  assert.deepEqual(searchPeople(people, "  CHEN   ELODIE ").map(p => p.id), ["elodie"]);
++  assert.deepEqual(searchPeople(people, "may p").map(p => p.id), ["maya"]);
++  assert.deepEqual(searchPeople(people, "does not exist"), []);
++  assert.deepEqual(searchPeople(people, "   "), []);
++});
++
++test("a larger class changes only the requested slot, using someone off the board", () => {
++  const original = people.slice(0, 6);
++  const next = rotatePerson(people, original, 2, () => 0.9);
++  assert.equal(next.length, 6);
++  assert.equal(next[2].id, "noah");
++  assert.equal(new Set(next.map(p => p.id)).size, 6);
++  assert.deepEqual(next.filter((_, i) => i !== 2), original.filter((_, i) => i !== 2));
++  assert.equal(original[2].id, "alex-3");
++});
++
++test("six profiles swap positions without duplicating a person", () => {
++  const original = people.slice(0, 6);
++  const next = rotatePerson(original, original, 0, () => 0.5);
++  assert.notEqual(next[0].id, original[0].id);
++  assert.equal(next.filter((p, i) => p.id !== original[i].id).length, 2);
++  assert.deepEqual(next.map(p => p.id).sort(), original.map(p => p.id).sort());
++});
++
++test("repeated changes keep six unique people and reach the full class", () => {
++  let seed = 17;
++  const random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
++  const roster = Array.from({ length: 30 }, (_, i) => ({ id: String(i), name: "Same name" }));
++  let visible = roster.slice(0, 6);
++  const seen = new Set(visible.map(p => p.id));
++  for (let i = 0; i < 300; i++) {
++    const slot = i % 6;
++    const previous = visible[slot].id;
++    visible = rotatePerson(roster, visible, slot, random);
++    assert.equal(visible.length, 6);
++    assert.equal(new Set(visible.map(p => p.id)).size, 6);
++    assert.notEqual(visible[slot].id, previous);
++    visible.forEach(p => seen.add(p.id));
++  }
++  assert.equal(seen.size, roster.length);
++});
++
++test("empty and one-person rosters remain usable", () => {
++  assert.deepEqual(rotatePerson([], [], 0), []);
++  assert.deepEqual(rotatePerson(people.slice(0, 1), people.slice(0, 1), 0), people.slice(0, 1));
++});
++
++test("random delays stay in the requested staggered range", () => {
++  const delays = [0, 0.15, 0.35, 0.6, 0.8, 0.9999].map(value => nextCardDelay(() => value));
++  assert.ok(delays.every(delay => delay >= 4000 && delay < 9000));
++  assert.equal(new Set(delays).size, 6);
++});

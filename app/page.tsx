@@ -1,10 +1,12 @@
 "use client";
 
 import { useRef, useState, type CSSProperties } from "react";
-import { ArrowLeft, ArrowRight, ArrowUpRight, CornerDownRight, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Pause, Play, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { chapters, people, type Chapter, type Person } from "@/lib/class-profile";
+import { PeopleSearch } from "@/components/people-search";
+import { useRotatingPeople } from "@/hooks/use-rotating-people";
 
 const sampleTotal = 48;
 
@@ -37,10 +39,15 @@ export default function Home() {
   const [view, setView] = useState("people");
   const [personIndex, setPersonIndex] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const profileTrigger = useRef<HTMLButtonElement | null>(null);
+  const [rotationPaused, setRotationPaused] = useState(false);
+  const profileTrigger = useRef<HTMLElement | null>(null);
   const person = people[personIndex];
+  const { cards } = useRotatingPeople(people, rotationPaused);
 
-  const changeView = (value: string) => { setView(value); window.scrollTo({top:0, behavior:"instant"}); };
+  const changeView = (value: string) => {
+    setView(value);
+    window.scrollTo({top:0, behavior:"instant"});
+  };
 
   return <Tabs value={view} onValueChange={changeView} className="site-tabs">
     <a className="skip-link" href="#main">skip to content</a>
@@ -51,30 +58,49 @@ export default function Home() {
         <TabsTrigger value="profile">class profile</TabsTrigger>
         <TabsTrigger value="about">about</TabsTrigger>
       </TabsList>
-      <span className="header-location">mcmaster university<br/><span>hamilton, ontario</span></span>
+      {view === "people" ? <div className="people-tools">
+        <PeopleSearch people={people} onSelect={(member, input) => {
+          const index = people.findIndex(candidate => candidate.id === member.id);
+          if (index < 0) return;
+          profileTrigger.current = input;
+          setPersonIndex(index);
+          setDialogOpen(true);
+        }} />
+        <button className="rotation-toggle" type="button"
+          disabled={people.length < 2}
+          aria-pressed={rotationPaused}
+          aria-label={rotationPaused ? "Resume rotating cards" : "Pause rotating cards"}
+          title={rotationPaused ? "Resume cards" : "Pause cards"}
+          onClick={() => setRotationPaused(paused => !paused)}>
+          {rotationPaused ? <Play size={15} aria-hidden="true" /> : <Pause size={15} aria-hidden="true" />}
+        </button>
+      </div> : <span className="header-location">mcmaster university<br/><span>hamilton, ontario</span></span>}
     </header>
 
     <main id="main">
       <TabsContent value="people" className="people-page">
         <div className="board-heading"><h1>computer science</h1></div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <section className={"photo-board" + (people.length > 6 ? " expanded-board" : "")} aria-label="Mac CS sample student webring">
+          <section className="photo-board" aria-label="Mac CS student webring">
             <div className="year-type" aria-hidden="true"><span>20</span><span>30</span></div>
             <div className="polaroid-spread">
-              {people.map((member,index) => <DialogTrigger asChild key={member.id}>
-                <button className={"polaroid photo-"+(index%6)} onClick={(event) => {profileTrigger.current=event.currentTarget;setPersonIndex(index);}} aria-label={"Open "+member.name+"’s sample profile"}>
-                  <span className="photo-window"><ProfilePhoto person={member} eager={index<3}/><span className="photo-hover-label">say hello <ArrowUpRight size={17}/></span></span>
+              {cards.map(({ person: member, revision }, slot) => <DialogTrigger asChild key={slot}>
+                <button className={"polaroid photo-"+slot} data-person-id={member.id}
+                  onClick={(event) => {profileTrigger.current=event.currentTarget;setPersonIndex(people.findIndex(candidate => candidate.id === member.id));}} aria-label={"Open "+member.name+"’s profile"}>
+                  <span className="photo-window"><ProfilePhoto person={member} eager/><span className="photo-hover-label">say hello <ArrowUpRight size={17}/></span></span>
                   <span className="photo-caption"><span className="photo-name">{member.name.toLowerCase()}</span></span>
                   <span className="photo-note">{member.note || member.tagline}</span>
+                  {revision > 0 && <span key={revision} className="polaroid-flash" aria-hidden="true" />}
                 </button>
               </DialogTrigger>)}
             </div>
+            {people.length === 0 && <p className="people-empty">No profiles yet.</p>}
           </section>
-          <DialogContent className="profile-dialog" showCloseButton={false} onCloseAutoFocus={(event) => {event.preventDefault();profileTrigger.current?.focus();}}>
+          {person && <DialogContent className="profile-dialog" showCloseButton={false} onCloseAutoFocus={(event) => {event.preventDefault();profileTrigger.current?.focus();}}>
             <button className="close-dialog" onClick={() => setDialogOpen(false)} aria-label="Close profile"><X size={21}/></button>
             <div className="profile-photo"><ProfilePhoto person={person} eager/></div>
             <div className="profile-copy"><span className="profile-meta">mac cs ’30 / profile</span><DialogTitle>{person.name.toLowerCase()}</DialogTitle><DialogDescription>{person.tagline}</DialogDescription><p className="profile-bio">{person.bio}</p><div className="profile-detail"><h3>working on</h3><p>{person.project}</p></div><div className="profile-detail"><h3>also into</h3><p>{person.offline}</p></div><div className="ring-controls"><button onClick={() => setPersonIndex((i)=>(i+people.length-1)%people.length)} aria-label="Previous classmate"><ArrowLeft size={17}/> previous</button><span aria-live="polite">{String(personIndex+1).padStart(2,"0")} / {String(people.length).padStart(2,"0")}</span><button onClick={() => setPersonIndex((i)=>(i+1)%people.length)} aria-label="Next classmate">next <ArrowRight size={17}/></button></div></div>
-          </DialogContent>
+          </DialogContent>}
         </Dialog>
       </TabsContent>  
 
