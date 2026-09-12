@@ -1,17 +1,10 @@
-import { Buffer } from "node:buffer";
-import { eq } from "drizzle-orm";
-import { getDb } from "@/db";
-import { photos, submissions } from "@/db/schema";
+import { Binary } from "mongodb";
 import { MAX_PHOTO_BYTES, sniffImageType } from "@/lib/join-rules";
 import { submissionSchema } from "@/lib/join-schema";
+import { collections, isDuplicateKey } from "@/lib/server/mongo";
 
 const fail = (status: number, error: string, code?: string) => Response.json({ error, code }, { status });
 const alreadySubmitted = () => fail(409, "This email has already submitted.", "taken");
-
-function isUniqueViolation(error: unknown) {
-  const cause = error instanceof Error && error.cause instanceof Error ? error.cause.message : "";
-  return `${error instanceof Error ? error.message : String(error)} ${cause}`.includes("UNIQUE constraint failed");
-}
 
 export async function POST(request: Request) {
   let form: FormData;
@@ -35,14 +28,19 @@ export async function POST(request: Request) {
   const submission = parsed.data;
 
   try {
-    const db = getDb();
-    const existing = await db.select({ email: submissions.email }).from(submissions)
-      .where(eq(submissions.email, submission.email)).get();
-    if (existing) return alreadySubmitted();
+    const { submissions, photos } = await collections();
+    if (await submissions.findOne({ _id: submission.email }, { projection: { _id: 1 } })) return alreadySubmitted();
 
-    const base = { email: submission.email, publicId: crypto.randomUUID(), answers: submission.answers };
+    const base = {
+      _id: submission.email,
+      publicId: crypto.randomUUID(),
+      status: "pending" as const,
+      answers: submission.answers,
+      createdAt: new Date(),
+      approvedAt: null,
+    };
     if (!submission.showOnBoard) {
-      await db.insert(submissions).values({ ...base, showOnBoard: false });
+      await submissions.insertOne({ ...base, showOnBoard: false });
       return Response.json({ ok: true }, { status: 201 });
     }
 
@@ -55,24 +53,17 @@ export async function POST(request: Request) {
 
     const photoId = crypto.randomUUID();
     const { card } = submission;
-    await db.batch([
-      db.insert(photos).values({ id: photoId, contentType, data: Buffer.from(bytes) }),
-      db.insert(submissions).values({
-        ...base,
-        showOnBoard: true,
-        name: card.name,
-        note: card.note,
-        tagline: card.tagline,
-        bio: card.bio,
-        project: card.project,
-        interests: card.interests,
-        photoId,
-        photoPosition: card.photoPosition,
-      }),
-    ]);
+    await photos.insertOne({ _id: photoId, contentType, data: new Binary(bytes), createdAt: new Date() });
+    try {
+      await submissions.insertOne({ ...base, showOnBoard: true, ...card, photoId });
+    } catch (error) {
+      // Don't leave an orphaned photo behind, for example when the same email submits twice at once.
+      await photos.deleteOne({ _id: photoId });
+      throw error;
+    }
     return Response.json({ ok: true }, { status: 201 });
   } catch (error) {
-    if (isUniqueViolation(error)) return alreadySubmitted();
+    if (isDuplicateKey(error)) return alreadySubmitted();
     console.error("Could not save submission", error);
     return fail(500, "Something went wrong saving your answers. Please try again.");
   }

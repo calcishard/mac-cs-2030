@@ -1,8 +1,9 @@
 # Mac CS 2030 — start here
 
-The class site: a board of clickable polaroid profiles, a class profile of survey charts, an About page, and a `/join` form that feeds both.
+The class site: a board of clickable polaroid profiles, a class profile of survey charts, an About page, and a `/join` form that feeds both. It is a Next.js app hosted on Vercel, with data in MongoDB.
 
 Repository: https://github.com/calcishard/mac-cs-2030
+Live site: https://mac-cs-2030.vercel.app
 
 ## Main files
 
@@ -14,7 +15,7 @@ Repository: https://github.com/calcishard/mac-cs-2030
 | Home page: board, profile dialog, charts, About text | `components/home.tsx` |
 | Dragging and throwing polaroids | `components/draggable-slot.tsx` |
 | The admin review page | `components/admin.tsx`, `app/admin/page.tsx` |
-| Database tables | `db/schema.ts`, with migrations in `drizzle/` |
+| Database connection and document shapes | `lib/server/mongo.ts` |
 | Layout, colours, fonts, and responsive styles | `app/globals.css` |
 | Browser title and description | `app/layout.tsx` |
 
@@ -27,25 +28,25 @@ Repository: https://github.com/calcishard/mac-cs-2030
 
 Emails are never sent to visitors; the board uses a separate random ID for each person.
 
-## Admin password
+## Database: MongoDB Atlas
 
-The admin page is locked with the `ADMIN_PASSWORD` secret.
+1. Create a free cluster at https://cloud.mongodb.com.
+2. Under **Database Access**, add a database user with a password.
+3. Under **Network Access**, allow `0.0.0.0/0`. Vercel's servers don't have fixed IP addresses.
+4. Click **Connect → Drivers** and copy the connection string, filling in the user's password.
 
-- Locally, it lives in `.dev.vars` (ignored by Git). Restart the dev server after changing it.
-- In production, set it once with `pnpm wrangler secret put ADMIN_PASSWORD`.
+The app creates its `submissions` and `photos` collections and indexes on first use. Photos are shrunk in the browser to under 1 MB (usually a few hundred KB) and stored in the `photos` collection.
 
-## Database
+## Environment variables
 
-The site uses Cloudflare D1 (SQLite). Photos are shrunk in the browser to about 300 KB and stored in the `photos` table.
+| Name | What it is |
+| --- | --- |
+| `MONGODB_URI` | The Atlas connection string |
+| `ADMIN_PASSWORD` | The password for `/admin` |
+| `MONGODB_DB` | Optional database name; defaults to `mac-cs-2030` |
 
-After changing `db/schema.ts`:
-
-```sh
-pnpm db:generate        # writes a new SQL migration into drizzle/
-pnpm db:migrate:local   # applies it to the local preview database
-```
-
-`pnpm deploy` applies pending migrations to the live database before deploying.
+- Locally, put them in `.env.local` (ignored by Git) and restart `pnpm dev`.
+- On Vercel, add them under **Project → Settings → Environment Variables**, then redeploy.
 
 ## Run locally
 
@@ -53,11 +54,10 @@ Use Node.js 22.13.0 or newer and pnpm 11.25.0, matching `package.json`.
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm db:migrate:local
 pnpm dev
 ```
 
-Open the local URL printed by the dev server. Checks:
+Open http://localhost:3000. Checks:
 
 ```sh
 node --test tests/*.test.mjs
@@ -65,13 +65,9 @@ pnpm lint
 pnpm build
 ```
 
-## Deploy to Cloudflare
+## Deploy
 
-`wrangler.jsonc` holds the Worker name and the D1 binding. Sign in once with `pnpm wrangler login`, then:
-
-```sh
-pnpm deploy
-```
+Vercel builds the site from GitHub. Pull requests get a preview deployment, and merging into `main` updates https://mac-cs-2030.vercel.app. Make sure both environment variables are set for Preview and Production first.
 
 ## Images and fonts
 

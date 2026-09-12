@@ -125,7 +125,7 @@ function AdminSection({ title, entries, busy, empty, onAction }: SectionProps) {
         <p className="admin-email">
           {entry.email}
           {!isMcMasterEmail(entry.email) && <span className="admin-flag"><TriangleAlert size={13} aria-hidden="true" />not @mcmaster.ca</span>}
-          <span className="admin-date">{entry.createdAt.slice(0, 16)} UTC</span>
+          <span className="admin-date">{entry.createdAt.slice(0, 16).replace("T", " ")} UTC</span>
         </p>
         {entry.showOnBoard && <>
           <p className="admin-tagline">{entry.tagline}</p>

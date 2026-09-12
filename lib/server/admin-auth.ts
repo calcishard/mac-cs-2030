@@ -1,7 +1,7 @@
-import { env } from "cloudflare:workers";
-
 export const ADMIN_COOKIE = "mac_cs_admin";
 const SESSION_SECONDS = 60 * 60 * 24 * 14;
+
+const adminPassword = () => process.env.ADMIN_PASSWORD;
 
 async function digest(value: string) {
   const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
@@ -15,16 +15,18 @@ function sameText(a: string, b: string) {
   return difference === 0;
 }
 
-export const adminConfigured = () => Boolean(env.ADMIN_PASSWORD);
+export const adminConfigured = () => Boolean(adminPassword());
 
 // The cookie holds a hash of the password, so changing the password signs everyone out.
 async function sessionToken() {
-  return env.ADMIN_PASSWORD ? digest(`mac-cs-2030 admin session:${env.ADMIN_PASSWORD}`) : null;
+  const password = adminPassword();
+  return password ? digest(`mac-cs-2030 admin session:${password}`) : null;
 }
 
 export async function checkPassword(input: string) {
-  if (!env.ADMIN_PASSWORD) return false;
-  return sameText(await digest(input), await digest(env.ADMIN_PASSWORD));
+  const password = adminPassword();
+  if (!password) return false;
+  return sameText(await digest(input), await digest(password));
 }
 
 export async function isAdminSession(token: string | null | undefined) {

@@ -1,10 +1,6 @@
-import { desc, eq } from "drizzle-orm";
-import { getDb } from "@/db";
-import { submissions } from "@/db/schema";
 import type { AdminEntry, Person } from "@/lib/class-profile";
+import { collections, type SubmissionDoc } from "@/lib/server/mongo";
 import { summarize, type SurveySummary } from "@/lib/survey";
-
-type Row = typeof submissions.$inferSelect;
 
 // Background and text colours for the initials shown if a photo fails to load.
 const palette = [
@@ -28,32 +24,33 @@ function shuffle<T>(items: T[]) {
   return items;
 }
 
-function toPerson(row: Row): Person {
-  const name = row.name ?? "";
-  const [color, ink] = palette[hash(row.publicId) % palette.length];
+function toPerson(doc: SubmissionDoc): Person {
+  const name = doc.name ?? "";
+  const [color, ink] = palette[hash(doc.publicId) % palette.length];
   return {
-    id: row.publicId,
+    id: doc.publicId,
     name,
     initials: name.split(" ").map(word => word.charAt(0)).join("").toLowerCase(),
-    tagline: row.tagline ?? "",
+    tagline: doc.tagline ?? "",
     color,
     ink,
-    bio: row.bio ?? "",
-    project: row.project ?? "",
-    interests: row.interests ?? [],
-    photo: row.photoId ? photoUrl(row.photoId) : undefined,
+    bio: doc.bio ?? "",
+    project: doc.project ?? "",
+    interests: doc.interests ?? [],
+    photo: doc.photoId ? photoUrl(doc.photoId) : undefined,
     photoAlt: `Photo of ${name}`,
-    photoPosition: row.photoPosition ?? undefined,
-    note: row.note ?? undefined,
+    photoPosition: doc.photoPosition,
+    note: doc.note,
   };
 }
 
 /** Approved polaroids for the board, plus chart numbers from approved answers. */
 export async function getHomeData(): Promise<{ people: Person[]; survey: SurveySummary }> {
   try {
-    const rows = await getDb().select().from(submissions).where(eq(submissions.status, "approved"));
-    const people = shuffle(rows.filter(row => row.showOnBoard && row.name && row.photoId)).map(toPerson);
-    return { people, survey: summarize(rows.map(row => row.answers)) };
+    const { submissions } = await collections();
+    const docs = await submissions.find({ status: "approved" }).toArray();
+    const people = shuffle(docs.filter(doc => doc.showOnBoard && doc.name && doc.photoId)).map(toPerson);
+    return { people, survey: summarize(docs.map(doc => doc.answers)) };
   } catch (error) {
     console.error("Could not load approved submissions", error);
     return { people: [], survey: summarize([]) };
@@ -61,19 +58,20 @@ export async function getHomeData(): Promise<{ people: Person[]; survey: SurveyS
 }
 
 export async function listSubmissions(): Promise<AdminEntry[]> {
-  const rows = await getDb().select().from(submissions).orderBy(desc(submissions.createdAt));
-  return rows.map(row => ({
-    email: row.email,
-    status: row.status,
-    showOnBoard: row.showOnBoard,
-    name: row.name,
-    note: row.note,
-    tagline: row.tagline,
-    bio: row.bio,
-    project: row.project,
-    interests: row.interests ?? [],
-    photo: row.photoId ? photoUrl(row.photoId) : undefined,
-    photoPosition: row.photoPosition,
-    createdAt: row.createdAt,
+  const { submissions } = await collections();
+  const docs = await submissions.find({}, { projection: { answers: 0 } }).sort({ createdAt: -1 }).toArray();
+  return docs.map(doc => ({
+    email: doc._id,
+    status: doc.status,
+    showOnBoard: doc.showOnBoard,
+    name: doc.name ?? null,
+    note: doc.note ?? null,
+    tagline: doc.tagline ?? null,
+    bio: doc.bio ?? null,
+    project: doc.project ?? null,
+    interests: doc.interests ?? [],
+    photo: doc.photoId ? photoUrl(doc.photoId) : undefined,
+    photoPosition: doc.photoPosition ?? null,
+    createdAt: doc.createdAt.toISOString(),
   }));
 }
