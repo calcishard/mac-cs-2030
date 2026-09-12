@@ -68,6 +68,6 @@ test("empty and one-person rosters remain usable", () => {
 
 test("random delays stay in the requested staggered range", () => {
   const delays = [0, 0.15, 0.35, 0.6, 0.8, 0.9999].map(value => nextCardDelay(() => value));
-  assert.ok(delays.every(delay => delay >= 4000 && delay < 9000));
+  assert.ok(delays.every(delay => delay >= 7000 && delay < 13000));
   assert.equal(new Set(delays).size, 6);
 });

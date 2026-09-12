@@ -21,9 +21,9 @@ type Step = { id: string; label: string; icon: LucideIcon; hint?: string; chapte
 const STEPS: Step[] = [
   { id: "email", label: "email", icon: Mail },
   { id: "card", label: "polaroid", icon: Camera },
-  { id: "before", label: "before mac", icon: MapPin, chapters: ["before"] },
-  { id: "academics", label: "in class", icon: BookOpen, chapters: ["academics"] },
-  { id: "life", label: "outside class", icon: Coffee, hint: "pick the one you like most.", chapters: ["life", "coop"] },
+  { id: "before", label: "before mac", icon: MapPin, hint: "all optional.", chapters: ["before"] },
+  { id: "academics", label: "in class", icon: BookOpen, hint: "all optional.", chapters: ["academics"] },
+  { id: "life", label: "outside class", icon: Coffee, hint: "all optional. pick the one you like most.", chapters: ["life", "coop"] },
   { id: "review", label: "review", icon: ClipboardCheck },
 ];
 
@@ -88,6 +88,16 @@ export function JoinForm() {
     clearError(key);
   }
 
+  function answer(id: string, value: string | undefined) {
+    setAnswers(current => {
+      const next = { ...current };
+      if (value) next[id] = value;
+      else delete next[id];
+      return next;
+    });
+  }
+
+  // Only the email, and a name, photo, and consent for a card on the board, are required.
   function validate(index: number): Errors {
     const id = STEPS[index].id;
     if (id === "email") {
@@ -103,7 +113,7 @@ export function JoinForm() {
       return found;
     }
     if (id === "review") return showOnBoard && !consent ? { consent: "please confirm first." } : {};
-    return Object.fromEntries(questionsFor(STEPS[index]).filter(question => !answers[question.id]).map(question => [question.id, "pick one."]));
+    return {};
   }
 
   function go(index: number) {
@@ -208,7 +218,7 @@ export function JoinForm() {
           <div className="join-input-group">
             <Mail size={18} aria-hidden="true" />
             <input id="email" type="email" inputMode="email" value={email} placeholder="smithj12@mcmaster.ca" autoComplete="email"
-              autoCapitalize="none" spellCheck={false} aria-invalid={!!errors.email}
+              autoCapitalize="none" spellCheck={false} required aria-invalid={!!errors.email}
               onChange={event => { setEmail(event.target.value); clearError("email"); }} />
           </div>
         </Field>
@@ -234,7 +244,7 @@ export function JoinForm() {
           ? <motion.div key="fields" className="join-collapse" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.35, ease }}>
               <div className="join-fields">
-                <Field id="photo" label="photo" icon={ImagePlus} error={errors.photo}>
+                <Field id="photo" label="photo" icon={ImagePlus} required error={errors.photo}>
                   <div className="photo-picker">
                     <button type="button" id="photo" className="join-button" disabled={busy === "photo"} onClick={() => fileInput.current?.click()}>
                       {busy === "photo" ? <LoaderCircle className="join-spinner" size={16} aria-hidden="true" /> : <ImagePlus size={16} aria-hidden="true" />}
@@ -242,9 +252,9 @@ export function JoinForm() {
                     </button>
                   </div>
                 </Field>
-                <Field id="name" label="name" icon={User} error={errors.name}>
+                <Field id="name" label="name" icon={User} required error={errors.name}>
                   <input id="name" className="join-input" value={card.name} placeholder="Jason T." autoComplete="off" maxLength={40}
-                    aria-invalid={!!errors.name} onChange={event => updateCard("name", event.target.value)}
+                    required aria-invalid={!!errors.name} onChange={event => updateCard("name", event.target.value)}
                     onBlur={() => card.name && updateCard("name", formatName(card.name))} />
                 </Field>
                 <Field id="note" label="little note" icon={MessageCircle} count={card.note.length} max={LIMITS.note} error={errors.note}>
@@ -263,7 +273,7 @@ export function JoinForm() {
                   <input id="project" className="join-input" value={card.project} placeholder="a map of quiet study spots" maxLength={LIMITS.project}
                     autoComplete="off" aria-invalid={!!errors.project} onChange={event => updateCard("project", event.target.value)} />
                 </Field>
-                <Field id="interests" label="interests" icon={Sparkles} hint={`${LIMITS.interestsMin}–${LIMITS.interestsMax}, press enter after each`} error={errors.interests}>
+                <Field id="interests" label="interests" icon={Sparkles} hint={`up to ${LIMITS.interestsMax}, press enter after each`} error={errors.interests}>
                   <ChipInput id="interests" values={card.interests} invalid={!!errors.interests}
                     onChange={values => updateCard("interests", values)} />
                 </Field>
@@ -275,38 +285,37 @@ export function JoinForm() {
       </AnimatePresence>
     </>;
 
-    if (step.id === "review") return <>
-      <StepHeading icon={step.icon} focus={navigated}>look it over.</StepHeading>
-      <div className="review-list">
-        <ReviewGroup title="email" onEdit={() => go(0)}>
-          <dl><dt>mac email</dt><dd>{normalizeEmail(email)}</dd></dl>
-        </ReviewGroup>
-        <ReviewGroup title="polaroid" onEdit={() => go(1)}>
-          {showOnBoard
-            ? <dl>
-                <dt>name</dt><dd>{card.name}</dd>
-                <dt>little note</dt><dd>{card.note}</dd>
-                <dt>tagline</dt><dd>{card.tagline}</dd>
-                <dt>bio</dt><dd>{card.bio}</dd>
-                <dt>working on</dt><dd>{card.project}</dd>
-                <dt>interests</dt><dd>{card.interests.join(" · ")}</dd>
-              </dl>
-            : <p className="review-muted">not on the home page.</p>}
-        </ReviewGroup>
-        {STEPS.map((candidate, index) => candidate.chapters && <ReviewGroup key={candidate.id} title={candidate.label} onEdit={() => go(index)}>
-          <dl>{questionsFor(candidate).map(question => <Fragment key={question.id}>
-            <dt>{question.prompt}</dt><dd>{labelFor(question, answers[question.id])}</dd>
-          </Fragment>)}</dl>
-        </ReviewGroup>)}
-      </div>
-      {showOnBoard && <Field id="consent" error={errors.consent}>
-        <label className="check-row">
-          <input id="consent" type="checkbox" checked={consent} aria-invalid={!!errors.consent}
-            onChange={event => { setConsent(event.target.checked); clearError("consent"); }} />
-          <span><strong>my polaroid can be public on this site</strong></span>
-        </label>
-      </Field>}
-    </>;
+    if (step.id === "review") {
+      const cardRows = ([
+        ["name", card.name], ["little note", card.note], ["tagline", card.tagline],
+        ["bio", card.bio], ["working on", card.project], ["interests", card.interests.join(" · ")],
+      ] as const).filter(([, value]) => value.trim());
+      return <>
+        <StepHeading icon={step.icon} focus={navigated}>look it over.</StepHeading>
+        <div className="review-list">
+          <ReviewGroup title="email" onEdit={() => go(0)}>
+            <dl><dt>mac email</dt><dd>{normalizeEmail(email)}</dd></dl>
+          </ReviewGroup>
+          <ReviewGroup title="polaroid" onEdit={() => go(1)}>
+            {showOnBoard
+              ? <dl>{cardRows.map(([label, value]) => <Fragment key={label}><dt>{label}</dt><dd>{value}</dd></Fragment>)}</dl>
+              : <p className="review-muted">not on the home page.</p>}
+          </ReviewGroup>
+          {STEPS.map((candidate, index) => candidate.chapters && <ReviewGroup key={candidate.id} title={candidate.label} onEdit={() => go(index)}>
+            <dl>{questionsFor(candidate).map(question => <Fragment key={question.id}>
+              <dt>{question.prompt}</dt><dd>{labelFor(question, answers[question.id])}</dd>
+            </Fragment>)}</dl>
+          </ReviewGroup>)}
+        </div>
+        {showOnBoard && <Field id="consent" error={errors.consent}>
+          <label className="check-row">
+            <input id="consent" type="checkbox" checked={consent} required aria-invalid={!!errors.consent}
+              onChange={event => { setConsent(event.target.checked); clearError("consent"); }} />
+            <span><strong>my polaroid can be public on this site<span className="join-required" aria-hidden="true">*</span></strong></span>
+          </label>
+        </Field>}
+      </>;
+    }
 
     return <>
       <StepHeading icon={step.icon} focus={navigated}>{step.label}.</StepHeading>
@@ -317,8 +326,8 @@ export function JoinForm() {
         const ChapterIcon = chapterIcons[chapter.id];
         return <div className="join-questions" key={chapter.id}>
           {chapter.id !== step.id && <p className="join-chapter-label handwritten">{ChapterIcon && <ChapterIcon size={20} aria-hidden="true" />}{chapter.label}</p>}
-          {chapter.questions.map(id => <ChoiceQuestion key={id} question={questionsById[id]} value={answers[id]} error={errors[id]}
-            onChange={value => { setAnswers(current => ({ ...current, [id]: value })); clearError(id); }} />)}
+          {chapter.questions.map(id => <ChoiceQuestion key={id} question={questionsById[id]} value={answers[id]}
+            onChange={value => answer(id, value)} />)}
         </div>;
       })}
     </>;
@@ -424,6 +433,7 @@ type FieldProps = {
   label?: string;
   icon?: LucideIcon;
   hideLabel?: boolean;
+  required?: boolean;
   hint?: string;
   error?: string;
   count?: number;
@@ -431,10 +441,13 @@ type FieldProps = {
   children: ReactNode;
 };
 
-function Field({ id, label, icon: Icon, hideLabel, hint, error, count, max, children }: FieldProps) {
+function Field({ id, label, icon: Icon, hideLabel, required, hint, error, count, max, children }: FieldProps) {
   return <div className="join-field" data-invalid={!!error}>
     {label && <div className={hideLabel ? "sr-only" : "join-label-row"}>
-      <label htmlFor={id}>{Icon && <Icon size={15} aria-hidden="true" />}{label}</label>
+      <label htmlFor={id}>
+        {Icon && <Icon size={15} aria-hidden="true" />}{label}
+        {required && <><span className="join-required" aria-hidden="true">*</span><span className="sr-only"> (required)</span></>}
+      </label>
       {max !== undefined && <span className="join-count">{count}/{max}</span>}
     </div>}
     {children}
@@ -447,16 +460,18 @@ function Field({ id, label, icon: Icon, hideLabel, hint, error, count, max, chil
   </div>;
 }
 
-type ChoiceProps = { question: Question; value?: string; error?: string; onChange: (value: string) => void };
+type ChoiceProps = { question: Question; value?: string; onChange: (value: string | undefined) => void };
 
-function ChoiceQuestion({ question, value, error, onChange }: ChoiceProps) {
-  return <fieldset className={`join-question ${question.kind}`} data-invalid={!!error}>
+/** Every question is optional: tapping the chosen answer again clears it. */
+function ChoiceQuestion({ question, value, onChange }: ChoiceProps) {
+  return <fieldset className={`join-question ${question.kind}`}>
     <legend>{question.prompt}</legend>
     <div className="choice-list">
       {question.options.map(option => {
         const selected = value === option.value;
         return <motion.label key={option.value} className="choice" data-selected={selected} whileTap={{ scale: 0.95 }}>
-          <input type="radio" name={question.id} value={option.value} checked={selected} onChange={() => onChange(option.value)} />
+          <input type="radio" name={question.id} value={option.value} checked={selected}
+            onChange={() => onChange(option.value)} onClick={() => { if (selected) onChange(undefined); }} />
           <span className="choice-face">
             {question.kind === "yesno" ? option.label.toLowerCase() : option.label}
             {selected && question.kind === "choice" && <motion.span className="choice-check" initial={{ scale: 0, rotate: -45 }} animate={{ scale: 1, rotate: 0 }}
@@ -465,7 +480,6 @@ function ChoiceQuestion({ question, value, error, onChange }: ChoiceProps) {
         </motion.label>;
       })}
     </div>
-    {error && <p className="join-error" role="alert">{error}</p>}
   </fieldset>;
 }
 

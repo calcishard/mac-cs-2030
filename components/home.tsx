@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DraggableSlot } from "@/components/draggable-slot";
 import { PeopleSearch } from "@/components/people-search";
-import { useRotatingPeople } from "@/hooks/use-rotating-people";
+import { BOARD_SIZE, useRotatingPeople } from "@/hooks/use-rotating-people";
 import type { Person } from "@/lib/class-profile";
 import { MIN_RESPONSES, chapters, questionsById, statKey, type Chapter, type SurveySummary } from "@/lib/survey";
 
@@ -41,12 +41,12 @@ function SurveyPanel({ chapter, survey }: { chapter: Chapter; survey: SurveySumm
   const [page, setPage] = useState(0);
   const [direction, setDirection] = useState(1);
   const question = questionsById[chapter.bars[page]];
-  const bars = survey.bars[question.id] ?? [];
-  const largest = Math.max(1, ...bars.map(bar => bar.count));
-  const { total } = survey;
-  const statCount = survey.stats[statKey(chapter.stat.question, chapter.stat.option)] ?? 0;
-  const donutCount = survey.stats[statKey(chapter.donut.question, chapter.donut.option)] ?? 0;
-  const donutPercent = Math.round(donutCount / total * 100);
+  // Questions are optional, so every number is out of the people who answered that question.
+  const chart = survey.bars[question.id];
+  const largest = Math.max(1, ...(chart?.bars ?? []).map(bar => bar.count));
+  const stat = survey.stats[statKey(chapter.stat.question, chapter.stat.option)];
+  const donut = survey.stats[statKey(chapter.donut.question, chapter.donut.option)];
+  const donutPercent = donut ? Math.round(donut.count / donut.answered * 100) : 0;
 
   const turn = (step: number) => {
     setDirection(step);
@@ -66,19 +66,31 @@ function SurveyPanel({ chapter, survey }: { chapter: Chapter; survey: SurveySumm
       <AnimatePresence mode="wait" initial={false} custom={direction}>
         <motion.div key={question.id} className="chart-body" custom={direction} variants={slide} initial="enter" animate="center" exit="exit" transition={{ duration: 0.28, ease }}>
           <h3>{question.chartTitle}</h3>
-          <div className="bar-chart" role="list" aria-label={question.chartTitle}>
-            {bars.map((answer, index) => <div className="bar-item" role="listitem" key={answer.label}>
-              <div className="bar-label"><span>{answer.label}</span><span>{answer.count}<small> / {total}</small></span></div>
-              <div className="bar-track" aria-hidden="true"><div className={"bar-fill bar-" + index} style={{ width: (answer.count / largest * 100) + "%", "--i": index } as CSSProperties}/></div>
-            </div>)}
-          </div>
+          {chart
+            ? <div className="bar-chart" role="list" aria-label={question.chartTitle}>
+                {chart.bars.map((answer, index) => <div className="bar-item" role="listitem" key={answer.label}>
+                  <div className="bar-label"><span>{answer.label}</span><span>{answer.count}<small> / {chart.answered}</small></span></div>
+                  <div className="bar-track" aria-hidden="true"><div className={"bar-fill bar-" + index} style={{ width: (answer.count / largest * 100) + "%", "--i": index } as CSSProperties}/></div>
+                </div>)}
+              </div>
+            : <p className="chart-empty">not enough answers yet.</p>}
         </motion.div>
       </AnimatePresence>
-      <p className="chart-footnote">{total} responses · one answer per person</p>
+      <p className="chart-footnote">{chart ? `${chart.answered} answered · one answer per person` : `shows up at ${MIN_RESPONSES} answers`}</p>
     </article>
     <div className="survey-side">
-      <article className="number-paper"><p className="chart-kicker">{chapter.stat.eyebrow}</p><p className="big-stat"><CountUp value={statCount}/><span>/{total}</span></p><h3>{chapter.stat.label}</h3></article>
-      <article className="donut-paper"><div className="donut" style={{ "--progress": donutPercent + "%" } as CSSProperties} role="img" aria-label={`${donutCount} of ${total} respondents: ${chapter.donut.label}`}><span><CountUp value={donutPercent}/><small>%</small></span></div><div><h3>{chapter.donut.label}</h3><p>{donutCount} of {total} responses</p></div></article>
+      <article className="number-paper">
+        <p className="chart-kicker">{chapter.stat.eyebrow}</p>
+        <p className="big-stat">{stat ? <><CountUp value={stat.count}/><span>/{stat.answered}</span></> : "–"}</p>
+        <h3>{chapter.stat.label}</h3>
+      </article>
+      <article className="donut-paper">
+        <div className="donut" style={{ "--progress": donutPercent + "%" } as CSSProperties} role="img"
+          aria-label={donut ? `${donut.count} of ${donut.answered} who answered: ${chapter.donut.label}` : `${chapter.donut.label}: not enough answers yet`}>
+          <span>{donut ? <><CountUp value={donutPercent}/><small>%</small></> : "–"}</span>
+        </div>
+        <div><h3>{chapter.donut.label}</h3><p>{donut ? `${donut.count} of ${donut.answered} answered` : "not enough answers yet"}</p></div>
+      </article>
     </div>
   </div>;
 }
@@ -127,7 +139,7 @@ export function Home({ people, survey }: { people: Person[]; survey: SurveySumma
           setDialogOpen(true);
         }} />
         <button className="rotation-toggle" type="button"
-          disabled={people.length < 2}
+          disabled={people.length <= BOARD_SIZE}
           aria-pressed={rotationPaused}
           aria-label={rotationPaused ? "Resume rotating cards" : "Pause rotating cards"}
           title={rotationPaused ? "Resume cards" : "Pause cards"}
@@ -169,7 +181,15 @@ export function Home({ people, survey }: { people: Person[]; survey: SurveySumma
           {person && <DialogContent className="profile-dialog" showCloseButton={false} onCloseAutoFocus={(event) => {event.preventDefault();profileTrigger.current?.focus();}}>
             <button className="close-dialog" onClick={() => setDialogOpen(false)} aria-label="Close profile"><X size={21}/></button>
             <div className="profile-photo"><ProfilePhoto person={person} eager/></div>
-            <div className="profile-copy"><span className="profile-meta">mac cs ’30 / profile</span><DialogTitle>{person.name.toLowerCase()}</DialogTitle><DialogDescription>{person.tagline}</DialogDescription><p className="profile-bio">{person.bio}</p><div className="profile-detail"><h3>working on</h3><p>{person.project}</p></div><div className="profile-detail"><h3>also into</h3><p>{person.interests.join(" · ")}</p></div><div className="ring-controls"><button onClick={() => setPersonIndex((i)=>(i+people.length-1)%people.length)} aria-label="Previous classmate"><ArrowLeft size={17}/> previous</button><span aria-live="polite">{String(personIndex+1).padStart(2,"0")} / {String(people.length).padStart(2,"0")}</span><button onClick={() => setPersonIndex((i)=>(i+1)%people.length)} aria-label="Next classmate">next <ArrowRight size={17}/></button></div></div>
+            <div className="profile-copy">
+              <span className="profile-meta">mac cs ’30 / profile</span>
+              <DialogTitle>{person.name.toLowerCase()}</DialogTitle>
+              <DialogDescription>{person.tagline}</DialogDescription>
+              {person.bio && <p className="profile-bio">{person.bio}</p>}
+              {person.project && <div className="profile-detail"><h3>working on</h3><p>{person.project}</p></div>}
+              {person.interests.length > 0 && <div className="profile-detail"><h3>also into</h3><p>{person.interests.join(" · ")}</p></div>}
+              <div className="ring-controls"><button onClick={() => setPersonIndex((i)=>(i+people.length-1)%people.length)} aria-label="Previous classmate"><ArrowLeft size={17}/> previous</button><span aria-live="polite">{String(personIndex+1).padStart(2,"0")} / {String(people.length).padStart(2,"0")}</span><button onClick={() => setPersonIndex((i)=>(i+1)%people.length)} aria-label="Next classmate">next <ArrowRight size={17}/></button></div>
+            </div>
           </DialogContent>}
         </Dialog>
       </TabsContent>

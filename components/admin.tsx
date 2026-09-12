@@ -127,14 +127,12 @@ function AdminSection({ title, entries, busy, empty, onAction }: SectionProps) {
           {!isMcMasterEmail(entry.email) && <span className="admin-flag"><TriangleAlert size={13} aria-hidden="true" />not @mcmaster.ca</span>}
           <span className="admin-date">{entry.createdAt.slice(0, 16).replace("T", " ")} UTC</span>
         </p>
-        {entry.showOnBoard && <>
-          <p className="admin-tagline">{entry.tagline}</p>
-          <p className="admin-bio">{entry.bio}</p>
-          <dl>
-            <dt>working on</dt><dd>{entry.project}</dd>
-            <dt>also into</dt><dd>{entry.interests.join(" · ")}</dd>
-          </dl>
-        </>}
+        {entry.tagline && <p className="admin-tagline">{entry.tagline}</p>}
+        {entry.bio && <p className="admin-bio">{entry.bio}</p>}
+        {(entry.project || entry.interests.length > 0) && <dl>
+          {entry.project && <><dt>working on</dt><dd>{entry.project}</dd></>}
+          {entry.interests.length > 0 && <><dt>also into</dt><dd>{entry.interests.join(" · ")}</dd></>}
+        </dl>}
         <div className="admin-actions">
           {entry.status === "pending"
             ? <button type="button" className="join-button primary" disabled={busy === entry.email} onClick={() => onAction(entry.email, "approve")}>

@@ -4,11 +4,9 @@
 export const LIMITS = {
   note: 40,
   tagline: 50,
-  bioMin: 20,
   bio: 300,
   project: 80,
   interest: 24,
-  interestsMin: 3,
   interestsMax: 5,
 } as const;
 
