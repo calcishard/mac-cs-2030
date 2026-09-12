@@ -29,7 +29,8 @@ export type PhotoDoc = { _id: string; contentType: string; data: Binary; created
 const cache = globalThis as typeof globalThis & { macCsDb?: Promise<Db> };
 
 async function connect(uri: string) {
-  const client = await new MongoClient(uri, { maxPoolSize: 10 }).connect();
+  // ignoreUndefined leaves skipped optional fields out of documents instead of storing null.
+  const client = await new MongoClient(uri, { maxPoolSize: 10, ignoreUndefined: true }).connect();
   const db = client.db(process.env.MONGODB_DB || "mac-cs-2030");
   const submissions = db.collection<SubmissionDoc>("submissions");
   await Promise.all([

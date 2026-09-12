@@ -23,15 +23,18 @@ function preloadPhoto(person: Person): Promise<void> {
   });
 }
 
+export const BOARD_SIZE = 6;
+
 export function useRotatingPeople(people: readonly Person[], paused: boolean) {
   // The first server and client renders agree; randomness begins in the timers.
-  const [cards, setCards] = useState(() => people.slice(0, 6).map(person => ({ person, revision: 0 })));
+  const [cards, setCards] = useState(() => people.slice(0, BOARD_SIZE).map(person => ({ person, revision: 0 })));
   const currentCards = useRef(cards);
 
   useEffect(() => {
     // Only the explicit pause button stops rotation. UI interactions and
     // section changes do not reset or cancel the independent card timers.
-    if (paused || people.length < 2) return;
+    // When everyone already fits on the board there is no one to bring in, so nothing rotates.
+    if (paused || people.length <= BOARD_SIZE) return;
     let cancelled = false;
     let changing = false;
     const timers: number[] = [];

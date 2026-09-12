@@ -10,9 +10,9 @@ People come from approved submissions in the database, shuffled on each page loa
 
 ## Rotation
 
-- Each card gets its own random delay between 4 and 9 seconds. A fresh delay is selected after each change.
-- With more than six people, the changing card brings in someone who is not already visible. With six or fewer, two cards swap places so one person never occupies two slots. A single profile stays still.
-- The changing card flashes briefly, then the white overlay fades away over 900 ms. Incoming photos are preloaded; slow images can add a short delay.
+- Cards only rotate when there are more than six approved people. With six or fewer, everyone is already on the board, so the cards stay still and the pause button is disabled.
+- Each card gets its own random delay between 7 and 13 seconds. A fresh delay is selected after each change. The changing card brings in someone who is not already visible.
+- The changing card starts under a soft white wash that fades away over 1.4 s. Incoming photos are preloaded; slow images can add a short delay.
 - Rotation continues while a card is hovered or keyboard-focused, the search is being used, a profile is open, or another site section is selected. The open profile stays on the person you selected while the board changes behind it.
 - Only the pause button beside search stops rotation until resumed. Pausing also cancels any pending card replacement; a flash already on screen finishes fading.
 - The operating system's reduced-motion setting suppresses the flash animation through CSS; the people continue rotating and the pause button stays available.

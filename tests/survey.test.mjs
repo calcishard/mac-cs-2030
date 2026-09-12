@@ -3,7 +3,7 @@ import test from "node:test";
 import { MAX_BARS, MIN_RESPONSES, OTHER_LABEL, chapters, foldBars, questions, questionsById, statKey, summarize } from "../lib/survey.ts";
 
 const responses = (count, answer) => Array.from({ length: count }, (_, index) =>
-  Object.fromEntries(questions.map(question => [question.id, answer(question, index)])));
+  Object.fromEntries(questions.map(question => [question.id, answer(question, index)]).filter(([, value]) => value !== undefined)));
 
 test("every chapter points at real questions and options, and asks each question once", () => {
   for (const chapter of chapters) {
@@ -50,16 +50,29 @@ test("only the largest answers get their own bar", () => {
   assert.deepEqual(bars.at(-1), { label: OTHER_LABEL, count: 9 });
 });
 
-test("summaries count stats and keep every bar chart summing to the total", () => {
+test("skipped questions don't count: each chart is out of the people who answered it", () => {
   const summary = summarize(responses(12, (question, index) => {
-    if (question.id === "coded_before") return index < 7 ? "yes" : "no";
+    if (question.id === "coded_before") return index === 11 ? undefined : index < 7 ? "yes" : "no";
     return question.options[index % 2].value;
   }));
   assert.equal(summary.ready, true);
-  assert.equal(summary.stats[statKey("coded_before", "yes")], 7);
+  assert.deepEqual(summary.stats[statKey("coded_before", "yes")], { answered: 11, count: 7 });
   for (const chapter of chapters) {
     for (const id of chapter.bars) {
-      assert.equal(summary.bars[id].reduce((sum, bar) => sum + bar.count, 0), 12, id);
+      const chart = summary.bars[id];
+      assert.equal(chart.answered, 12, id);
+      assert.equal(chart.bars.reduce((sum, bar) => sum + bar.count, 0), 12, id);
     }
   }
+});
+
+test("a question too few people answered stays hidden even when the class profile is showing", () => {
+  const summary = summarize(responses(12, (question, index) => {
+    if (question.id === "fuel" || question.id === "morning_person") return index < MIN_RESPONSES - 1 ? question.options[0].value : undefined;
+    return question.options[0].value;
+  }));
+  assert.equal(summary.ready, true);
+  assert.equal(summary.bars.fuel, null);
+  assert.equal(summary.stats[statKey("morning_person", "yes")], null);
+  assert.equal(summary.bars.hometown.answered, 12);
 });

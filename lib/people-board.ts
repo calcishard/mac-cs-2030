@@ -16,7 +16,7 @@ export function searchPeople<T extends IdentifiedPerson>(people: readonly T[], q
 }
 
 export function nextCardDelay(random = Math.random) {
-  return 4000 + Math.floor(random() * 5000);
+  return 7000 + Math.floor(random() * 6000);
 }
 
 /** Change one slot without duplicating someone already on the board. */

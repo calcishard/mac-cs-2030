@@ -186,7 +186,7 @@ export const chapters: readonly Chapter[] = [
   },
 ];
 
-/** Charts appear only once this many approved responses exist. */
+/** The class profile appears at this many approved responses, and each chart once this many people answered it. */
 export const MIN_RESPONSES = 10;
 /** Answers picked by fewer people than this are merged into OTHER_LABEL. */
 export const MIN_BUCKET = 3;
@@ -194,11 +194,15 @@ export const MAX_BARS = 5;
 export const OTHER_LABEL = "Something else";
 
 export type Bar = { label: string; count: number };
+// Every question is optional, so each chart counts only the people who answered it.
+export type QuestionChart = { answered: number; bars: Bar[] };
+export type StatCount = { answered: number; count: number };
 export type SurveySummary = {
   total: number;
   ready: boolean;
-  bars: Record<string, Bar[]>;
-  stats: Record<string, number>;
+  /** null when too few people answered to show the question without singling anyone out. */
+  bars: Record<string, QuestionChart | null>;
+  stats: Record<string, StatCount | null>;
 };
 
 export const statKey = (question: string, option: string) => `${question}:${option}`;
@@ -210,19 +214,26 @@ export function summarize(responses: readonly Partial<SurveyAnswers>[]): SurveyS
 
   const tally = (id: string) => {
     const counts = new Map<string, number>();
+    let answered = 0;
     for (const answers of responses) {
       const value = answers[id];
-      if (value) counts.set(value, (counts.get(value) ?? 0) + 1);
+      if (!value) continue;
+      answered++;
+      counts.set(value, (counts.get(value) ?? 0) + 1);
     }
-    return counts;
+    return { counts, answered };
   };
 
-  const bars: Record<string, Bar[]> = {};
-  const stats: Record<string, number> = {};
+  const bars: SurveySummary["bars"] = {};
+  const stats: SurveySummary["stats"] = {};
   for (const chapter of chapters) {
-    for (const id of chapter.bars) bars[id] = foldBars(questionsById[id], tally(id));
+    for (const id of chapter.bars) {
+      const { counts, answered } = tally(id);
+      bars[id] = answered >= MIN_RESPONSES ? { answered, bars: foldBars(questionsById[id], counts) } : null;
+    }
     for (const { question, option } of [chapter.stat, chapter.donut]) {
-      stats[statKey(question, option)] = tally(question).get(option) ?? 0;
+      const { counts, answered } = tally(question);
+      stats[statKey(question, option)] = answered >= MIN_RESPONSES ? { answered, count: counts.get(option) ?? 0 } : null;
     }
   }
   return { total, ready: true, bars, stats };

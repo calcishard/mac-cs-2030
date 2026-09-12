@@ -1,0 +1,103 @@
+.credits {
+  margin: 20px 0 14px;
+}
+
+.heading {
+  margin: 0 0 10px;
+  color: var(--maroon);
+  font: 500 28px/1.1 "Caveat", cursive;
+}
+
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 22px;
+  margin: 0;
+  padding: 0 3px 4px;
+  list-style: none;
+}
+
+.developer {
+  width: 140px;
+  max-width: 100%;
+}
+
+.card {
+  margin: 0;
+  padding: 7px 7px 8px;
+  background: #fffefa;
+  border: 1px solid #eeede8;
+  box-shadow: 0 3px 10px #2d271410;
+  transform: rotate(-3deg);
+}
+
+.developer:nth-child(even) .card {
+  transform: rotate(3deg);
+}
+
+.portrait {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #efe4df;
+}
+
+.developer:nth-child(even) .portrait {
+  background: #e3e8de;
+}
+
+.portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.initials {
+  color: var(--maroon);
+  font: 500 48px/1 "Caveat", cursive;
+}
+
+.name {
+  margin: 7px 0 0;
+  color: var(--ink);
+  font: 500 23px/1.1 "Caveat", cursive;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+/* Keep the portraits compact in the existing desktop About layout. */
+@media (min-width: 801px) and (min-height: 600px) {
+  .credits { margin: 12px 0 10px; }
+  .heading { margin-bottom: 8px; font-size: 25px; }
+  .developer { width: 122px; }
+  .card { padding: 6px 6px 7px; }
+  .portrait { aspect-ratio: 1.2; }
+  .initials { font-size: 40px; }
+  .name { font-size: 21px; }
+}
+
+@media (min-width: 801px) and (min-height: 600px) and (max-height: 700px) {
+  .credits { margin: 8px 0; }
+  .heading { margin-bottom: 7px; font-size: 23px; }
+  .developer { width: 108px; }
+  .portrait { aspect-ratio: 1.35; }
+  .name { font-size: 20px; }
+}
+
+@media (max-width: 370px) {
+  .list { gap: 16px; }
+  .developer { width: calc((100% - 16px) / 2); }
+  .name { font-size: 21px; }
+}
+
+.portrait {
+  aspect-ratio: 1 / 1.07;
+}
+
+@media (max-width: 620px) {
+  .portrait {
+    aspect-ratio: 1 / 1.1;
+  }
+}
