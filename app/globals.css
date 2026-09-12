@@ -41,7 +41,7 @@ img{display:block;max-width:100%}
 .board-heading h1{font-size:clamp(60px,9.6vw,150px);font-weight:850;letter-spacing:-.075em;line-height:1.04;white-space:nowrap}
 .heading-note{display:block;margin:12px 1.5% 0 0;text-align:right;font:500 26px/1.3 "Caveat",cursive;color:var(--maroon);transform:rotate(-3deg)}
 .photo-board{position:relative;width:min(1180px,calc(100% - 88px));height:690px;margin:28px auto 0;isolation:isolate}
-.year-type{position:absolute;left:51%;top:50%;transform:translate(-50%,-50%) rotate(-3deg);display:flex;flex-direction:column;color:#1b1b1b;font-size:285px;font-weight:900;letter-spacing:-.095em;line-height:.77;user-select:none;pointer-events:none}
+.year-type{position:absolute;left:51%;top:50%;transform:translate(-50%,-50%) rotate(-7deg);display:flex;flex-direction:column;color:#1b1b1b;font-size:285px;font-weight:900;letter-spacing:-.095em;line-height:.77;user-select:none;pointer-events:none}
 .year-type span:last-child{margin-left:-9px}
 .polaroid-spread{position:absolute;inset:0}
 .polaroid{position:absolute;display:block;width:clamp(162px,17.7vw,208px);padding:9px 9px 13px;background:#fffefa;color:var(--ink);border:1px solid #eeede8;border-radius:0;text-align:left;box-shadow:0 3px 5px #15120a0d,0 12px 22px -8px #15120a2b;transform:rotate(var(--tilt));transition:transform .2s ease,box-shadow .2s ease;will-change:transform}
