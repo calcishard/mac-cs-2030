@@ -37,7 +37,7 @@ img{display:block;max-width:100%}
 .header-location>span{color:#777770}
 
 /* A loose spread of photographs. The year sits underneath the paper. */
-.board-heading{position:relative;width:min(1440px,calc(100% - 88px));margin:35px auto 10px}
+.board-heading{position:relative;width:min(1440px,100%);margin:35px auto 10px;text-align:center}
 .board-heading h1{font-size:clamp(60px,9.6vw,150px);font-weight:850;letter-spacing:-.075em;line-height:1.04;white-space:nowrap}
 .heading-note{display:block;margin:12px 1.5% 0 0;text-align:right;font:500 26px/1.3 "Caveat",cursive;color:var(--maroon);transform:rotate(-3deg)}
 .photo-board{position:relative;width:min(1180px,calc(100% - 88px));height:690px;margin:28px auto 0;isolation:isolate}
@@ -180,3 +180,355 @@ img{display:block;max-width:100%}
 }
 @media(max-width:370px){.main-nav[data-slot="tabs-list"]{gap:11px}.main-nav [data-slot="tabs-trigger"]{font-size:11px}.wordmark{font-size:20px}.wordmark>span{font-size:22px}.board-heading h1{font-size:57px}.polaroid-spread{gap:31px 17px}.photo-name{font-size:25px}.photo-note{font-size:10px}.sample-stamp{font-size:9px}.note-hello{font-size:21px}.note-click{font-size:21px}.chapter-tabs[data-slot="tabs-list"]{gap:17px}.chapter-tabs [data-slot="tabs-trigger"]{font-size:12px}.survey-side{gap:15px}.inner-heading h1{font-size:47px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation:none!important;transition:none!important}}
+
+@media (min-width: 801px) and (min-height: 600px) {
+  .site-tabs:has(.people-page[data-state="active"] .photo-board:not(.expanded-board)) {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    min-height: 0;
+
+    > .site-header {
+      flex: 0 0 auto;
+      min-height: 66px;
+      margin: 0 auto;
+    }
+
+    > main {
+      flex: 1 1 0;
+      min-height: 0;
+    }
+
+    > .site-footer {
+      flex: 0 0 auto;
+      padding: 10px 0;
+    }
+
+    .people-page[data-state="active"] {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .board-heading {
+      flex: 0 0 auto;
+      margin: 8px auto 0;
+      text-align: center;
+    }
+
+    .board-heading h1 {
+      font-size: min(9.6vw, 10dvh, 130px);
+    }
+
+    .heading-note {
+      width: fit-content;
+      margin: 3px auto 0;
+      font-size: 20px;
+      text-align: center;
+    }
+
+    .photo-board {
+      flex: 1 1 0;
+      height: auto;
+      min-height: 0;
+      margin: 12px auto 0;
+      container-type: size;
+    }
+
+    .board-footer {
+      flex: 0 0 auto;
+      margin: 0 auto;
+      padding: 10px 0;
+    }
+
+    /* One design pixel, scaled to fit the original 1180 x 690 photo board. */
+    .photo-board > * {
+      --board-unit: min(1px, calc(100cqw / 1180), calc(100cqh / 690));
+    }
+
+    .polaroid {
+      width: calc(208 * var(--board-unit));
+      padding: calc(9 * var(--board-unit)) calc(9 * var(--board-unit)) calc(13 * var(--board-unit));
+    }
+
+    .photo-0 { top: calc(50 * var(--board-unit)); }
+    .photo-1 { top: calc(8 * var(--board-unit)); }
+    .photo-2 { top: calc(42 * var(--board-unit)); }
+    .photo-3 { bottom: calc(29 * var(--board-unit)); }
+    .photo-4 { bottom: calc(12 * var(--board-unit)); }
+    .photo-5 { bottom: calc(85 * var(--board-unit)); }
+
+    .photo-caption {
+      gap: calc(6 * var(--board-unit));
+      padding: calc(4 * var(--board-unit)) calc(3 * var(--board-unit)) 0;
+    }
+
+    .photo-name { font-size: calc(31 * var(--board-unit)); }
+    .sample-stamp { font-size: calc(11 * var(--board-unit)); }
+    .photo-note {
+      padding: 0 calc(3 * var(--board-unit));
+      font-size: calc(12 * var(--board-unit));
+    }
+
+    .year-type { font-size: calc(285 * var(--board-unit)); }
+    .board-note { font-size: calc(29 * var(--board-unit)); }
+    .note-click svg {
+      width: calc(28 * var(--board-unit));
+      height: calc(28 * var(--board-unit));
+      margin: calc(8 * var(--board-unit)) 0 0 calc(75 * var(--board-unit));
+    }
+
+    .board-coordinate {
+      bottom: calc(65 * var(--board-unit));
+      font-size: calc(11 * var(--board-unit));
+    }
+
+    .board-signoff {
+      bottom: calc(18 * var(--board-unit));
+      font-size: calc(26 * var(--board-unit));
+    }
+  }
+}
+
+@media (min-width: 801px) and (min-height: 600px) {
+  .site-tabs:has(.people-page[data-state="active"] .photo-board:not(.expanded-board)) {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    min-height: 0;
+
+    > .site-header {
+      flex: 0 0 auto;
+      min-height: 66px;
+      margin: 0 auto;
+    }
+
+    > main {
+      flex: 1 1 0;
+      min-height: 0;
+    }
+
+    > .site-footer {
+      flex: 0 0 auto;
+      padding: 10px 0;
+    }
+
+    .people-page[data-state="active"] {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .board-heading {
+      flex: 0 0 auto;
+      margin: 8px auto 0;
+      text-align: center;
+    }
+
+    .board-heading h1 {
+      font-size: min(9.6vw, 10dvh, 130px);
+    }
+
+    .heading-note {
+      width: fit-content;
+      margin: 3px auto 0;
+      font-size: 20px;
+      text-align: center;
+    }
+
+    .photo-board {
+      flex: 1 1 0;
+      height: auto;
+      min-height: 0;
+      margin: 12px auto 0;
+      container-type: size;
+    }
+
+    .board-footer {
+      flex: 0 0 auto;
+      margin: 0 auto;
+      padding: 10px 0;
+    }
+
+    /* One design pixel, scaled to fit the original 1180 x 690 photo board. */
+    .photo-board > * {
+      --board-unit: min(1px, calc(100cqw / 1180), calc(100cqh / 690));
+    }
+
+    .polaroid {
+      width: calc(208 * var(--board-unit));
+      padding: calc(9 * var(--board-unit)) calc(9 * var(--board-unit)) calc(13 * var(--board-unit));
+    }
+
+    .photo-0 { top: calc(50 * var(--board-unit)); }
+    .photo-1 { top: calc(8 * var(--board-unit)); }
+    .photo-2 { top: calc(42 * var(--board-unit)); }
+    .photo-3 { bottom: calc(29 * var(--board-unit)); }
+    .photo-4 { bottom: calc(12 * var(--board-unit)); }
+    .photo-5 { bottom: calc(85 * var(--board-unit)); }
+
+    .photo-caption {
+      gap: calc(6 * var(--board-unit));
+      padding: calc(4 * var(--board-unit)) calc(3 * var(--board-unit)) 0;
+    }
+
+    .photo-name { font-size: calc(31 * var(--board-unit)); }
+    .sample-stamp { font-size: calc(11 * var(--board-unit)); }
+    .photo-note {
+      padding: 0 calc(3 * var(--board-unit));
+      font-size: calc(12 * var(--board-unit));
+    }
+
+    .year-type { font-size: calc(285 * var(--board-unit)); }
+    .board-note { font-size: calc(29 * var(--board-unit)); }
+    .note-click svg {
+      width: calc(28 * var(--board-unit));
+      height: calc(28 * var(--board-unit));
+      margin: calc(8 * var(--board-unit)) 0 0 calc(75 * var(--board-unit));
+    }
+
+    .board-coordinate {
+      bottom: calc(65 * var(--board-unit));
+      font-size: calc(11 * var(--board-unit));
+    }
+
+    .board-signoff {
+      bottom: calc(18 * var(--board-unit));
+      font-size: calc(26 * var(--board-unit));
+    }
+  }
+}
+
+/* Class Profile and About share the space between navigation and footer. */
+@media (min-width: 801px) and (min-height: 600px) {
+  .site-tabs:has(.inner-page[data-state="active"]) {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    min-height: 0;
+    gap: 0;
+
+    > .site-header {
+      flex: 0 0 auto;
+      min-height: 56px;
+      margin: 0 auto;
+    }
+
+    > main { flex: 1 1 0; min-height: 0; }
+    > .site-footer { flex: 0 0 auto; padding: 6px 0; }
+
+    .inner-page[data-state="active"] {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      margin: 0 auto;
+      padding: 8px 0 10px;
+    }
+
+    .inner-heading { flex: 0 0 auto; margin-bottom: 8px; }
+    .inner-heading > p { margin-bottom: 4px; font-size: 12px; }
+    .inner-heading h1 { font-size: min(6vw, 7dvh, 64px); }
+    .margin-note { font-size: 25px; }
+    .survey-intro { flex: 0 0 auto; max-width: 720px; font-size: 14px; line-height: 1.5; }
+
+    .survey-tabs {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 0;
+      min-height: 0;
+      margin-top: 10px;
+      gap: 0;
+    }
+
+    .chapter-tabs[data-slot="tabs-list"] { flex: 0 0 auto; margin-bottom: 10px; }
+    .chapter-tabs [data-slot="tabs-trigger"] { padding: 7px 0 9px; font-size: 13px; }
+    .survey-tabs > [data-slot="tabs-content"][data-state="active"] {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 0;
+      min-height: 0;
+    }
+
+    .survey-grid { flex: 1 1 0; min-height: 0; gap: 32px; }
+    .chart-paper { display: flex; flex-direction: column; min-height: 0; padding: 0; }
+    .chart-kicker { margin-bottom: 5px; font-size: 11px; }
+    .chart-paper h3 { font-size: clamp(18px, 2.7dvh, 25px); }
+    .bar-chart {
+      flex: 1 1 0;
+      min-height: 0;
+      grid-auto-rows: minmax(0, 1fr);
+      gap: 4px;
+      margin-top: 10px;
+    }
+    .bar-item { display: flex; flex-direction: column; justify-content: center; }
+    .bar-label { margin-bottom: 4px; font-size: 13px; line-height: 1.4; }
+    .bar-label small { font-size: 11px; }
+    .bar-track { flex: 0 0 auto; height: 8px; }
+    .chart-footnote { margin-top: 8px; font-size: 11px; }
+    .survey-side { gap: 12px; }
+    .number-paper { padding: 15px 20px; }
+    .big-stat { font-size: min(8dvh, 72px); line-height: 1.05; letter-spacing: -3px; }
+    .big-stat > span { font-size: 18px; }
+    .number-paper h3 { margin-top: 6px; font-size: 16px; }
+    .donut-paper { gap: 16px; padding: 12px 0; }
+    .donut { width: min(12dvh, 96px); height: min(12dvh, 96px); }
+    .donut > span { font-size: 26px; }
+    .donut-paper h3 { font-size: 14px; }
+    .donut-paper p { font-size: 11px; }
+    .survey-caption { flex: 0 0 auto; margin-top: 8px; padding-top: 7px; font-size: 11px; }
+    .coop-empty { padding: 10px 0; }
+    .coop-empty > .handwritten { font-size: 27px; }
+    .coop-empty h2 { margin: 10px 0; font-size: 30px; }
+    .coop-empty p { font-size: 14px; }
+
+    /* Put the photograph beside both the About heading and its text. */
+    .about-page[data-state="active"] {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      column-gap: 30px;
+      row-gap: 8px;
+    }
+    .about-page .inner-heading { grid-column: 1; grid-row: 1; margin: 0; }
+    .about-page .inner-heading h1 { font-size: min(4vw, 5dvh, 48px); }
+    .about-layout { display: contents; }
+    .about-text { grid-column: 1; grid-row: 2; font-size: 14px; }
+    .about-text > p { margin-bottom: 9px; line-height: 1.5; }
+    .about-note { padding: 3px 0 8px; }
+    .about-note > .handwritten { margin-bottom: 5px; font-size: 25px; }
+    .about-note > p:last-child { font-size: 13px; line-height: 1.5; }
+    .about-text > p.unofficial-note { margin: 0; font-size: 11px; }
+    .about-postcard {
+      grid-column: 2;
+      grid-row: 1 / 3;
+      align-self: center;
+      width: 100%;
+      margin: 0;
+      padding: 8px;
+    }
+    .about-postcard img { width: 100%; height: auto; max-height: 32dvh; object-fit: cover; }
+    .about-postcard figcaption { padding: 5px 3px 0; font-size: 24px; }
+    .photo-credits { grid-column: 1 / -1; grid-row: 3; margin: 0; padding-top: 7px; font-size: 11px; line-height: 1.5; }
+    .photo-credits p { max-width: none; margin-top: 6px; }
+
+    /* Extra room for short laptop windows, including expanded photo credits. */
+    @media (max-height: 700px) {
+      .inner-heading h1 { font-size: 36px; }
+      .survey-intro { font-size: 13px; }
+      .chart-paper h3 { font-size: 18px; }
+      .number-paper { padding: 12px 16px; }
+      .number-paper h3 { font-size: 14px; }
+      .about-page .inner-heading h1 { font-size: 28px; }
+      .about-text { font-size: 13px; }
+      .about-text > p { margin-bottom: 7px; line-height: 1.45; }
+      .about-note { padding: 0 0 6px; }
+      .about-note > .handwritten { font-size: 23px; }
+      .about-note > p:last-child { font-size: 12px; line-height: 1.45; }
+      .about-text > p.unofficial-note { font-size: 11px; }
+      .photo-credits { font-size: 10px; line-height: 1.4; }
+    }
+  }
+}

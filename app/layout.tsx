@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Mac CS 2030 — Our Class",
-  description: "A little corner of the internet for McMaster Computer Science, class of 2030. A student webring and class profile, currently featuring sample profiles and data.",
+  title: "Mac CS 2030",
+  description: "mac cs 30 class profile",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

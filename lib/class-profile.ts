@@ -106,7 +106,7 @@ export const people: Person[] = [
 export const chapters: Chapter[] = [
   {
     "id": "before",
-    "category": "OUR STARTING POINTS",
+    "category": "",
     "question": "Where did we call home?",
     "bars": [
       {
@@ -130,7 +130,7 @@ export const chapters: Chapter[] = [
         "count": 5
       }
     ],
-    "statEyebrow": "BEFORE OUR FIRST LECTURE",
+    "statEyebrow": "BEFORE OUR FIRST LECTURE,",
     "statValue": 34,
     "statLabel": "had tried coding before Mac.",
     "statNote": "Different starting points. Plenty to learn from each other.",
@@ -139,7 +139,7 @@ export const chapters: Chapter[] = [
   },
   {
     "id": "academics",
-    "category": "THINGS WE WANT TO EXPLORE",
+    "category": "",
     "question": "What are we curious about?",
     "bars": [
       {
@@ -163,7 +163,7 @@ export const chapters: Chapter[] = [
         "count": 5
       }
     ],
-    "statEyebrow": "LEARNING, OUR WAY",
+    "statEyebrow": "out of all of our learning styles,",
     "statValue": 28,
     "statLabel": "learn best by building something.",
     "statNote": "A little theory, a little trial and error, a lot of tabs open.",
@@ -172,7 +172,7 @@ export const chapters: Chapter[] = [
   },
   {
     "id": "life",
-    "category": "OFFLINE, MOSTLY",
+    "category": "",
     "question": "What happens when we log off?",
     "bars": [
       {
@@ -196,11 +196,11 @@ export const chapters: Chapter[] = [
         "count": 6
       }
     ],
-    "statEyebrow": "THE EARLY-LECTURE CROWD",
+    "statEyebrow": "even though we all have 8:30 am lectures, only",
     "statValue": 19,
     "statLabel": "would call themselves morning people.",
     "statNote": "The rest of this fictional class would like five more minutes.",
     "donutCount": 36,
-    "donutLabel": "Want to try a new club"
+    "donutLabel": "Are in a club or team"
   }
 ];
