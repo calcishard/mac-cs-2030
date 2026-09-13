@@ -62,10 +62,10 @@ function ChapterHighlights({ chapter, survey }: { chapter: Chapter; survey: Surv
     </article>
     <article className="profile-card donut-card">
       <div className="donut" style={{ "--progress": (seen ? donutShare : 0) + "%" } as CSSProperties} role="img"
-        aria-label={donut ? `${donutShare}%, ${donut.count} of ${donut.answered} who answered: ${chapter.donut.label}` : `${chapter.donut.label}: not enough answers yet`}>
+        aria-label={donut ? `${chapter.donut.label}: ${donutShare}%, ${donut.count} of ${donut.answered}` : `${chapter.donut.label}: not enough answers yet`}>
         <span aria-hidden="true">{donut ? <><CountUp value={donutShare} start={seen}/><small>%</small></> : "–"}</span>
       </div>
-      <div><h3>{chapter.donut.label}</h3><p>{donut ? `${donut.count} of ${donut.answered} who answered` : "not enough answers yet"}</p></div>
+      <div><h3>{chapter.donut.label}</h3><p>{donut ? `${donut.count} of ${donut.answered}` : "not enough answers yet"}</p></div>
     </article>
   </div>;
 }
@@ -79,18 +79,15 @@ function BarChart({ id, survey }: { id: string; survey: SurveySummary }) {
   return <article ref={ref} className="profile-card chart-card" data-seen={seen || undefined}>
     <h3>{question.chartTitle}</h3>
     {chart
-      ? <>
-          <ol className="bar-chart" aria-label={question.chartTitle}>
-            {chart.bars.map((bar, index) => {
-              const share = percent(bar.count, chart.answered);
-              return <li className="bar-item" key={bar.label}>
-                <div className="bar-label"><span>{bar.label}</span><span>{share}%</span></div>
-                <div className="bar-track" aria-hidden="true"><div className={"bar-fill bar-" + index} style={{ width: share + "%", "--i": index } as CSSProperties}/></div>
-              </li>;
-            })}
-          </ol>
-          <p className="chart-footnote">out of {chart.answered} who answered</p>
-        </>
+      ? <ol className="bar-chart" aria-label={question.chartTitle}>
+          {chart.bars.map((bar, index) => {
+            const share = percent(bar.count, chart.answered);
+            return <li className="bar-item" key={bar.label}>
+              <div className="bar-label"><span>{bar.label}</span><span>{share}%</span></div>
+              <div className="bar-track" aria-hidden="true"><div className={"bar-fill bar-" + index} style={{ width: share + "%", "--i": index } as CSSProperties}/></div>
+            </li>;
+          })}
+        </ol>
       : <p className="chart-empty">not enough answers yet. this shows up at {MIN_RESPONSES}.</p>}
   </article>;
 }

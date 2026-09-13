@@ -160,7 +160,6 @@ img{display:block;max-width:100%}
 .bar-2{background:#c2c0b9}
 .bar-3{background:#ceccc5}
 .bar-4{background:#d9d7d0}
-.chart-footnote{margin-top:20px;font-size:12px;color:#87847a}
 .numbers-outro{padding-top:30px;border-top:1px solid #deded7}
 .numbers-outro>.handwritten{width:fit-content;font-size:31px;color:var(--maroon);transform:rotate(-3deg);transform-origin:left}
 .numbers-outro h2{max-width:540px;margin-top:10px;font-size:32px;font-weight:600;letter-spacing:-.04em;line-height:1.2}
@@ -171,7 +170,7 @@ img{display:block;max-width:100%}
   .numbers{margin-top:34px}.numbers-chapters{gap:64px}.chapter-heading{padding-top:16px}.chapter-heading h2{font-size:36px}.chapter-heading>p:last-child{font-size:15px}
   .chapter-highlights,.chapter-charts{grid-template-columns:minmax(0,1fr);gap:14px}.chapter-highlights{margin-top:22px}.chapter-charts{margin-top:14px}.chapter-charts>:last-child:nth-child(odd){grid-column:auto}
   .profile-card{padding:20px 18px}.big-stat{font-size:60px}.stat-of{font-size:19px;margin-left:7px}.stat-card h3{font-size:17px}.donut{width:96px;height:96px}.donut:before{inset:10px}.donut>span{font-size:27px}.donut-card h3{font-size:17px}
-  .chart-card h3{font-size:19px}.bar-chart{margin-top:20px;gap:14px}.chart-footnote{margin-top:16px}.numbers-outro h2{font-size:27px}
+  .chart-card h3{font-size:19px}.bar-chart{margin-top:20px;gap:14px}.numbers-outro h2{font-size:27px}
 }
 .coop-empty{padding:50px 0 70px;max-width:550px}
 .coop-empty>.handwritten{display:block;color:var(--maroon);font-size:32px;transform:rotate(-4deg);transform-origin:left}
