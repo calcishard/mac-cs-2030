@@ -163,7 +163,7 @@ export const chapters: readonly Chapter[] = [
     blurb: "Where we grew up, and what we knew before we got here.",
     questions: ["hometown", "coded_before", "been_to_hamilton", "first_language", "why_mac", "living"],
     bars: ["hometown", "first_language", "why_mac", "living"],
-    stat: { question: "coded_before", option: "yes", eyebrow: "before our first lecture,", label: "had tried coding before Mac." },
+    stat: { question: "coded_before", option: "yes", eyebrow: "before our first lecture,", label: "had tried coding." },
     donut: { question: "been_to_hamilton", option: "no", label: "New to Hamilton" },
   },
   {
