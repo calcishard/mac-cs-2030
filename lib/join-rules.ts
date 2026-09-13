@@ -11,8 +11,8 @@ export const LIMITS = {
 } as const;
 
 export const MAX_PHOTO_BYTES = 1_000_000;
-/** Only the shape is checked. Admins confirm the address really is a McMaster one. */
-export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** Must be a mcmaster.ca address — gmail.com and other domains are rejected. */
+export const EMAIL_PATTERN = /^[a-z0-9._%+-]+@mcmaster\.ca$/;
 export const NAME_PATTERN = /^\p{Lu}[\p{L}'’-]*(?: \p{Lu}[\p{L}'’-]*)* \p{Lu}\.$/u;
 export const PHOTO_POSITION_PATTERN = /^(?:100|\d{1,2})% (?:100|\d{1,2})%$/;
 
