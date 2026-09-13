@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Fragment, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { AnimatePresence, MotionConfig, motion, useAnimate, useReducedMotion } from "motion/react";
 import {
-  ArrowLeft, ArrowRight, BookOpen, Briefcase, Camera, ChartColumn, Check, ClipboardCheck, Clock, Coffee, Eye, EyeOff,
+  ArrowLeft, ArrowRight, BookOpen, Briefcase, Camera, Check, ClipboardCheck, Coffee, Eye, EyeOff,
   Hammer, ImagePlus, LoaderCircle, Mail, MapPin, MessageCircle, PenLine, Sparkles, Tag, User, X, type LucideIcon,
 } from "lucide-react";
 import { JoinSuccess } from "@/components/join/join-success";
@@ -12,7 +12,7 @@ import { PolaroidPreview, type PhotoPosition } from "@/components/join/polaroid-
 import { LIMITS, formatName, normalizeEmail } from "@/lib/join-rules";
 import { cardSchema, emailSchema } from "@/lib/join-schema";
 import { preparePhoto } from "@/lib/photo";
-import { chapters, questions, questionsById, type Question, type SurveyAnswers } from "@/lib/survey";
+import { chapters, questionsById, type Question, type SurveyAnswers } from "@/lib/survey";
 
 type Card = { name: string; note: string; tagline: string; bio: string; project: string; interests: string[] };
 type Errors = Record<string, string>;
@@ -223,11 +223,6 @@ export function JoinForm() {
           </div>
         </Field>
       </div>
-      <ul className="join-perks">
-        <li><Camera size={16} aria-hidden="true" />your polaroid</li>
-        <li><ChartColumn size={16} aria-hidden="true" />{questions.length} quick questions</li>
-        <li><Clock size={16} aria-hidden="true" />~5 minutes</li>
-      </ul>
     </>;
 
     if (step.id === "card") return <>

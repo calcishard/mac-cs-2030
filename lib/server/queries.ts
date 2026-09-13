@@ -59,7 +59,7 @@ export async function getHomeData(): Promise<{ people: Person[]; survey: SurveyS
 
 export async function listSubmissions(): Promise<AdminEntry[]> {
   const { submissions } = await collections();
-  const docs = await submissions.find({}, { projection: { answers: 0 } }).sort({ createdAt: -1 }).toArray();
+  const docs = await submissions.find({}).sort({ createdAt: -1 }).toArray();
   return docs.map(doc => ({
     email: doc._id,
     status: doc.status,
@@ -72,6 +72,7 @@ export async function listSubmissions(): Promise<AdminEntry[]> {
     interests: doc.interests ?? [],
     photo: doc.photoId ? photoUrl(doc.photoId) : undefined,
     photoPosition: doc.photoPosition ?? null,
+    answers: doc.answers ?? {},
     createdAt: doc.createdAt.toISOString(),
   }));
 }

@@ -5,12 +5,14 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { Check, EyeOff, LogOut, Pencil, Save, Trash2, TriangleAlert, Undo2 } from "lucide-react";
 import type { AdminEntry } from "@/lib/class-profile";
 import { LIMITS, formatName } from "@/lib/join-rules";
+import { chapters, questionsById, type SurveyAnswers } from "@/lib/survey";
 
 type Action = "approve" | "unapprove" | "delete";
-/** A card being edited, as plain text inputs. Interests are comma separated. */
-type CardDraft = { name: string; note: string; tagline: string; bio: string; project: string; interests: string; photoPosition: string };
+/** An entry being edited, as plain form values. Interests are comma separated. */
+type Draft = { name: string; note: string; tagline: string; bio: string; project: string; interests: string; answers: Partial<SurveyAnswers> };
+type TextKey = Exclude<keyof Draft, "answers">;
 /** The card as the server saved it. Blanked optional fields are left out. */
-type SavedCard = { name: string; note?: string; tagline?: string; bio?: string; project?: string; interests: string[]; photoPosition: string };
+type SavedCard = { name: string; note?: string; tagline?: string; bio?: string; project?: string; interests: string[] };
 
 const TEXT_FIELDS = [
   { key: "name", label: "name", max: 40 },
@@ -21,14 +23,14 @@ const TEXT_FIELDS = [
 
 const isMcMasterEmail = (email: string) => email.endsWith("@mcmaster.ca");
 
-const draftFor = (entry: AdminEntry): CardDraft => ({
+const draftFor = (entry: AdminEntry): Draft => ({
   name: entry.name ?? "",
   note: entry.note ?? "",
   tagline: entry.tagline ?? "",
   bio: entry.bio ?? "",
   project: entry.project ?? "",
   interests: entry.interests.join(", "),
-  photoPosition: entry.photoPosition ?? "50% 50%",
+  answers: { ...entry.answers },
 });
 
 function AdminShell({ children, signedIn = false }: { children: ReactNode; signedIn?: boolean }) {
@@ -98,7 +100,7 @@ export function AdminBoard({ entries: initialEntries }: { entries: AdminEntry[] 
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email, ...body }),
     });
-    const result = (await response.json().catch(() => null)) as { error?: string; card?: SavedCard } | null;
+    const result = (await response.json().catch(() => null)) as { error?: string; card?: SavedCard; answers?: Partial<SurveyAnswers> } | null;
     if (!response.ok) throw new Error(result?.error ?? "Request failed.");
     return result;
   }
@@ -128,22 +130,31 @@ export function AdminBoard({ entries: initialEntries }: { entries: AdminEntry[] 
     if (failed) setError(`${email}: ${failed}`);
   }
 
-  function save(email: string, draft: CardDraft) {
+  function save(entry: AdminEntry, draft: Draft) {
+    const { email, showOnBoard } = entry;
     return run(email, async () => {
-      const interests = draft.interests.split(",").map(interest => interest.trim()).filter(Boolean);
-      const result = await send(email, { action: "edit", card: { ...draft, name: formatName(draft.name), interests } });
-      const card = result?.card;
-      if (!card) throw new Error("Request failed.");
-      setEntries(current => current.map(entry => entry.email === email ? {
-        ...entry,
-        name: card.name,
-        note: card.note ?? null,
-        tagline: card.tagline ?? null,
-        bio: card.bio ?? null,
-        project: card.project ?? null,
-        interests: card.interests,
-        photoPosition: card.photoPosition,
-      } : entry));
+      const { answers, ...card } = draft;
+      const interests = card.interests.split(",").map(interest => interest.trim()).filter(Boolean);
+      const result = await send(email, {
+        action: "edit",
+        answers,
+        // Survey-only entries have no card to edit.
+        ...(showOnBoard ? { card: { ...card, name: formatName(card.name), interests } } : {}),
+      });
+      if (!result?.answers) throw new Error("Request failed.");
+      const { card: saved, answers: savedAnswers } = result;
+      setEntries(current => current.map(item => item.email !== email ? item : {
+        ...item,
+        answers: savedAnswers,
+        ...(saved && {
+          name: saved.name,
+          note: saved.note ?? null,
+          tagline: saved.tagline ?? null,
+          bio: saved.bio ?? null,
+          project: saved.project ?? null,
+          interests: saved.interests,
+        }),
+      }));
     });
   }
 
@@ -160,7 +171,7 @@ export function AdminBoard({ entries: initialEntries }: { entries: AdminEntry[] 
 
 type Handlers = {
   onAction: (email: string, action: Action) => void;
-  onSave: (email: string, draft: CardDraft) => Promise<string | null>;
+  onSave: (entry: AdminEntry, draft: Draft) => Promise<string | null>;
 };
 
 type SectionProps = Handlers & { title: string; entries: AdminEntry[]; busy: string | null; empty: string };
@@ -174,12 +185,21 @@ function AdminSection({ title, entries, busy, empty, onAction, onSave }: Section
 }
 
 function AdminCard({ entry, busy, onAction, onSave }: Handlers & { entry: AdminEntry; busy: boolean }) {
-  const [draft, setDraft] = useState<CardDraft | null>(null);
+  const [draft, setDraft] = useState<Draft | null>(null);
   const [editError, setEditError] = useState("");
   // While editing, the polaroid previews the draft.
-  const shown = draft ?? entry;
+  const name = draft ? draft.name : entry.name;
+  const note = draft ? draft.note : entry.note;
 
-  const update = (key: keyof CardDraft, value: string) => setDraft(current => current && { ...current, [key]: value });
+  const update = (key: TextKey, value: string) => setDraft(current => current && { ...current, [key]: value });
+
+  const updateAnswer = (id: string, value: string) => setDraft(current => {
+    if (!current) return current;
+    const answers = { ...current.answers };
+    if (value) answers[id] = value;
+    else delete answers[id];
+    return { ...current, answers };
+  });
 
   function stopEditing() {
     setDraft(null);
@@ -189,7 +209,7 @@ function AdminCard({ entry, busy, onAction, onSave }: Handlers & { entry: AdminE
   async function save(event: FormEvent) {
     event.preventDefault();
     if (!draft) return;
-    const failed = await onSave(entry.email, draft);
+    const failed = await onSave(entry, draft);
     if (failed) setEditError(failed);
     else stopEditing();
   }
@@ -198,10 +218,10 @@ function AdminCard({ entry, busy, onAction, onSave }: Handlers & { entry: AdminE
     {entry.showOnBoard
       ? <div className="polaroid admin-polaroid">
           <span className="photo-window">
-            {entry.photo && <img src={entry.photo} alt="" loading="lazy" style={{ objectPosition: shown.photoPosition || "center" }} />}
+            {entry.photo && <img src={entry.photo} alt="" loading="lazy" style={{ objectPosition: entry.photoPosition ?? "center" }} />}
           </span>
-          <span className="photo-caption"><span className="photo-name">{shown.name?.toLowerCase()}</span></span>
-          <span className="photo-note">{shown.note}</span>
+          <span className="photo-caption"><span className="photo-name">{name?.toLowerCase()}</span></span>
+          <span className="photo-note">{note}</span>
         </div>
       : <div className="admin-survey-only"><EyeOff size={20} aria-hidden="true" />survey only</div>}
     <div className="admin-details">
@@ -212,22 +232,34 @@ function AdminCard({ entry, busy, onAction, onSave }: Handlers & { entry: AdminE
       </p>
       {draft
         ? <form className="admin-edit" onSubmit={event => void save(event)}>
-            {TEXT_FIELDS.map(({ key, label, max }) => <label key={key}>
-              {label}
-              <input className="join-input" value={draft[key]} maxLength={max} autoComplete="off" onChange={event => update(key, event.target.value)} />
-            </label>)}
-            <label>
-              bio
-              <textarea className="join-input" rows={4} value={draft.bio} maxLength={LIMITS.bio} onChange={event => update("bio", event.target.value)} />
-            </label>
-            <label>
-              <span>interests <small>comma separated, up to {LIMITS.interestsMax}</small></span>
-              <input className="join-input" value={draft.interests} autoComplete="off" onChange={event => update("interests", event.target.value)} />
-            </label>
-            <label>
-              <span>photo position <small>x% y%, like 50% 30%</small></span>
-              <input className="join-input" value={draft.photoPosition} autoComplete="off" onChange={event => update("photoPosition", event.target.value)} />
-            </label>
+            {entry.showOnBoard && <fieldset className="admin-edit-group">
+              <legend>polaroid</legend>
+              {TEXT_FIELDS.map(({ key, label, max }) => <label key={key}>
+                {label}
+                <input className="join-input" value={draft[key]} maxLength={max} autoComplete="off" onChange={event => update(key, event.target.value)} />
+              </label>)}
+              <label className="admin-edit-wide">
+                bio
+                <textarea className="join-input" rows={4} value={draft.bio} maxLength={LIMITS.bio} onChange={event => update("bio", event.target.value)} />
+              </label>
+              <label className="admin-edit-wide">
+                <span>interests <small>comma separated, up to {LIMITS.interestsMax}</small></span>
+                <input className="join-input" value={draft.interests} autoComplete="off" onChange={event => update("interests", event.target.value)} />
+              </label>
+            </fieldset>}
+            {chapters.map(chapter => <fieldset className="admin-edit-group" key={chapter.id}>
+              <legend>{chapter.label}</legend>
+              {chapter.questions.map(id => {
+                const question = questionsById[id];
+                return <label key={id}>
+                  {question.prompt}
+                  <select className="join-input" value={draft.answers[id] ?? ""} onChange={event => updateAnswer(id, event.target.value)}>
+                    <option value="">skipped</option>
+                    {question.options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </label>;
+              })}
+            </fieldset>)}
             {editError && <p className="join-error" role="alert">{editError}</p>}
             <div className="admin-actions">
               <button type="submit" className="join-button primary" disabled={busy}><Save size={16} aria-hidden="true" /> save</button>
@@ -249,9 +281,9 @@ function AdminCard({ entry, busy, onAction, onSave }: Handlers & { entry: AdminE
                 : <button type="button" className="join-button" disabled={busy} onClick={() => onAction(entry.email, "unapprove")}>
                     <Undo2 size={16} aria-hidden="true" /> move back to review
                   </button>}
-              {entry.showOnBoard && <button type="button" className="join-button" disabled={busy} onClick={() => setDraft(draftFor(entry))}>
+              <button type="button" className="join-button" disabled={busy} onClick={() => setDraft(draftFor(entry))}>
                 <Pencil size={16} aria-hidden="true" /> edit
-              </button>}
+              </button>
               <button type="button" className="join-button ghost" disabled={busy} onClick={() => onAction(entry.email, "delete")}>
                 <Trash2 size={16} aria-hidden="true" /> delete
               </button>

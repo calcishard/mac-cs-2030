@@ -15,6 +15,8 @@ export type Person = {
   note?: string;
 };
 
+import type { SurveyAnswers } from "@/lib/survey";
+
 /** A submission as listed on the admin page. */
 export type AdminEntry = {
   email: string;
@@ -28,5 +30,6 @@ export type AdminEntry = {
   interests: string[];
   photo?: string;
   photoPosition: string | null;
+  answers: Partial<SurveyAnswers>;
   createdAt: string;
 };
