@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowLeft, Check, Hammer, LoaderCircle, MessageCircle, PenLine, Plus, Sparkles, Tag, User } from "lucide-react";
+import { ArrowLeft, Check, Hammer, LoaderCircle, MessageCircle, PenLine, Plus, Sparkles, Tag, Trash2, User } from "lucide-react";
 import { ChipInput, Field, JoinShell, positionText } from "@/components/join/join-form";
 import { PolaroidPreview, type PhotoPosition } from "@/components/join/polaroid-preview";
 import { forgetEditToken, useEditToken } from "@/hooks/use-edit-token";
@@ -21,7 +21,7 @@ function parsePosition(text: string): PhotoPosition {
   return { x: x ?? 50, y: y ?? 50 };
 }
 
-const request = (method: "POST" | "PATCH", body: object) =>
+const request = (method: "POST" | "PATCH" | "DELETE", body: object) =>
   fetch("/api/join/edit", { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 
 /** Lets someone change the polaroid they added from this browser. */
@@ -32,8 +32,8 @@ export function EditPolaroid() {
   const [position, setPosition] = useState<PhotoPosition>({ x: 50, y: 50 });
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState<"saving" | "deleting" | null>(null);
+  const [done, setDone] = useState<"saved" | "deleted" | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -78,12 +78,23 @@ export function EditPolaroid() {
       for (const issue of result.error.issues) found[String(issue.path[0])] ??= issue.message;
       return setErrors(found);
     }
-    setBusy(true);
+    await send("saving", () => request("PATCH", { token, card: draft }), "saved");
+  }
+
+  async function remove() {
+    if (!token || busy) return;
+    if (!window.confirm("Delete your polaroid and your survey answers? This can’t be undone.")) return;
+    await send("deleting", () => request("DELETE", { token }), "deleted");
+  }
+
+  async function send(kind: "saving" | "deleting", run: () => Promise<Response>, result: "saved" | "deleted") {
+    setBusy(kind);
     setFormError("");
     try {
-      const response = await request("PATCH", { token, card: draft });
+      const response = await run();
       if (response.ok) {
-        setSaved(true);
+        if (result === "deleted") forgetEditToken();
+        setDone(result);
         window.scrollTo({ top: 0 });
         return;
       }
@@ -96,16 +107,23 @@ export function EditPolaroid() {
     } catch {
       setFormError(OFFLINE);
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
-  if (saved) return <JoinShell>
+  if (done) return <JoinShell>
     <div className="join-success">
       <div className="success-copy">
-        <p className="handwritten success-note">pinned for review</p>
-        <h1>saved.</h1>
-        <p>your polaroid shows up on the board again once it’s approved.</p>
+        {done === "saved"
+          ? <>
+              <p className="handwritten success-note">pinned for review</p>
+              <h1>saved.</h1>
+              <p>your polaroid shows up on the board again once it’s approved.</p>
+            </>
+          : <>
+              <h1>deleted.</h1>
+              <p>your polaroid and answers are gone. you can add yourself again any time.</p>
+            </>}
         <div className="success-actions">
           <Link className="join-button primary" href="/"><ArrowLeft size={16} aria-hidden="true" /> back to the board</Link>
         </div>
@@ -172,10 +190,16 @@ export function EditPolaroid() {
               </section>
               {formError && <p className="join-form-error" role="alert">{formError}</p>}
               <div className="join-actions">
-                <Link className="join-button ghost" href="/"><ArrowLeft size={16} aria-hidden="true" /> cancel</Link>
-                <button type="submit" className="join-button primary" disabled={busy || !changed}>
-                  {busy ? <LoaderCircle className="join-spinner" size={16} aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
-                  {busy ? "saving…" : "save"}
+                <div className="edit-action-group">
+                  <Link className="join-button ghost" href="/"><ArrowLeft size={16} aria-hidden="true" /> cancel</Link>
+                  <button type="button" className="join-button ghost" disabled={!!busy} onClick={() => void remove()}>
+                    {busy === "deleting" ? <LoaderCircle className="join-spinner" size={16} aria-hidden="true" /> : <Trash2 size={16} aria-hidden="true" />}
+                    {busy === "deleting" ? "deleting…" : "delete"}
+                  </button>
+                </div>
+                <button type="submit" className="join-button primary" disabled={!!busy || !changed}>
+                  {busy === "saving" ? <LoaderCircle className="join-spinner" size={16} aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
+                  {busy === "saving" ? "saving…" : "save"}
                 </button>
               </div>
             </form>

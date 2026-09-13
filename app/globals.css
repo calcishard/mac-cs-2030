@@ -632,6 +632,7 @@ textarea.join-input{min-height:96px;resize:vertical;line-height:1.6}
 .edit-missing{margin-top:30px}
 .edit-links{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
 .edit-loading{display:flex;align-items:center;gap:8px;margin-top:30px}
+.edit-action-group{display:flex;flex-wrap:wrap;gap:10px}
 .counted-stamp{margin:30px 0 26px;padding:8px 24px;border:3px solid var(--maroon);font:500 56px/1 "Caveat",cursive;color:var(--maroon)}
 
 /* Admin: the review pile. */

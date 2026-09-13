@@ -6,6 +6,7 @@ import { collections } from "@/lib/server/mongo";
 import { photoUrl } from "@/lib/server/queries";
 
 // The person who added a polaroid can change its words and photo framing, but not the photo or their email.
+// They can also delete it.
 
 const requestSchema = z.object({ token: z.string().min(1).max(200), card: z.unknown().optional() });
 
@@ -62,5 +63,21 @@ export async function PATCH(request: Request) {
   } catch (error) {
     console.error("Could not save polaroid edit", error);
     return fail(500, "Something went wrong saving your changes. Please try again.");
+  }
+}
+
+/** Deletes the polaroid, its photo, and its survey answers. Like an admin delete, this lets the email submit again. */
+export async function DELETE(request: Request) {
+  const input = await readRequest(request);
+  if (!input) return fail(400, "Invalid request.");
+  try {
+    const { submissions, photos } = await collections();
+    const removed = await submissions.findOneAndDelete(input.filter);
+    if (!removed) return gone();
+    if (removed.photoId) await photos.deleteOne({ _id: removed.photoId });
+    return Response.json({ ok: true }, { headers: { "cache-control": "no-store" } });
+  } catch (error) {
+    console.error("Could not delete polaroid", error);
+    return fail(500, "Something went wrong deleting your polaroid. Please try again.");
   }
 }
