@@ -1,6 +1,7 @@
 import { Binary } from "mongodb";
 import { MAX_PHOTO_BYTES, sniffImageType } from "@/lib/join-rules";
 import { submissionSchema } from "@/lib/join-schema";
+import { hashEditToken, newEditToken } from "@/lib/server/edit-token";
 import { collections, isDuplicateKey } from "@/lib/server/mongo";
 
 const fail = (status: number, error: string, code?: string) => Response.json({ error, code }, { status });
@@ -53,15 +54,16 @@ export async function POST(request: Request) {
 
     const photoId = crypto.randomUUID();
     const { card } = submission;
+    const editToken = newEditToken();
     await photos.insertOne({ _id: photoId, contentType, data: new Binary(bytes), createdAt: new Date() });
     try {
-      await submissions.insertOne({ ...base, showOnBoard: true, ...card, photoId });
+      await submissions.insertOne({ ...base, showOnBoard: true, ...card, photoId, editTokenHash: await hashEditToken(editToken) });
     } catch (error) {
       // Don't leave an orphaned photo behind, for example when the same email submits twice at once.
       await photos.deleteOne({ _id: photoId });
       throw error;
     }
-    return Response.json({ ok: true }, { status: 201 });
+    return Response.json({ ok: true, editToken }, { status: 201 });
   } catch (error) {
     if (isDuplicateKey(error)) return alreadySubmitted();
     console.error("Could not save submission", error);

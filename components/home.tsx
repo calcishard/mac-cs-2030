@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { AnimatePresence, MotionConfig, animate, motion, useReducedMotion } from "motion/react";
-import { ArrowLeft, ArrowRight, ArrowUpRight, Pause, Play, Plus, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Pause, PenLine, Play, Plus, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DraggableSlot } from "@/components/draggable-slot";
 import { AboutDevelopers } from "@/components/about-developers";
 import { PeopleSearch } from "@/components/people-search";
+import { useEditToken } from "@/hooks/use-edit-token";
 import { BOARD_SIZE, useRotatingPeople } from "@/hooks/use-rotating-people";
 import type { Person } from "@/lib/class-profile";
 import { MIN_RESPONSES, chapters, questionsById, statKey, type Chapter, type SurveySummary } from "@/lib/survey";
@@ -113,6 +114,7 @@ export function Home({ people, survey }: { people: Person[]; survey: SurveySumma
   const profileTrigger = useRef<HTMLElement | null>(null);
   const person = people[personIndex];
   const { cards } = useRotatingPeople(people, rotationPaused);
+  const editToken = useEditToken();
 
   const changeView = (value: string) => {
     setView(value);
@@ -129,7 +131,9 @@ export function Home({ people, survey }: { people: Person[]; survey: SurveySumma
           <TabsTrigger value="profile">class profile</TabsTrigger>
           <TabsTrigger value="about">about</TabsTrigger>
         </TabsList>
-        <a className="join-link" href="/join"><Plus size={14} aria-hidden="true"/>add yours</a>
+        {editToken
+          ? <a className="join-link" href="/join/edit"><PenLine size={14} aria-hidden="true"/>edit yours</a>
+          : <a className="join-link" href="/join"><Plus size={14} aria-hidden="true"/>add yours</a>}
       </div>
       {view === "people" ? <div className="people-tools">
         <PeopleSearch people={people} onSelect={(member, input) => {

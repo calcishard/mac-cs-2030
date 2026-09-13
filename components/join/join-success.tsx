@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, PenLine } from "lucide-react";
 import type { PhotoPosition } from "@/components/join/polaroid-preview";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -43,6 +43,7 @@ export function JoinSuccess({ showOnBoard, name, note, photoUrl, position }: Pro
       <p>{showOnBoard ? "you’ll show up on the board once approved." : "your answers will show up in the charts."}</p>
       <div className="success-actions">
         <Link className="join-button primary" href="/"><ArrowLeft size={16} aria-hidden="true" /> back to the board</Link>
+        {showOnBoard && <Link className="join-button" href="/join/edit"><PenLine size={16} aria-hidden="true" /> edit your polaroid</Link>}
       </div>
     </motion.div>
   </div>;

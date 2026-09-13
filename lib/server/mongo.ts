@@ -17,6 +17,8 @@ export type SubmissionDoc = {
   interests?: string[];
   photoId?: string;
   photoPosition?: string;
+  /** Hash of the token that lets the person who added this card edit it. */
+  editTokenHash?: string;
   answers: Partial<SurveyAnswers>;
   createdAt: Date;
   approvedAt: Date | null;
@@ -36,6 +38,8 @@ async function connect(uri: string) {
   await Promise.all([
     submissions.createIndex({ publicId: 1 }, { unique: true }),
     submissions.createIndex({ status: 1, createdAt: -1 }),
+    // Sparse, since cards added before editing existed have no token.
+    submissions.createIndex({ editTokenHash: 1 }, { unique: true, sparse: true }),
   ]);
   return db;
 }

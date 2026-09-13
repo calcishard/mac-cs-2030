@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { JoinSuccess } from "@/components/join/join-success";
 import { PolaroidPreview, type PhotoPosition } from "@/components/join/polaroid-preview";
+import { saveEditToken } from "@/hooks/use-edit-token";
 import { LIMITS, formatName, normalizeEmail } from "@/lib/join-rules";
 import { cardSchema, emailSchema } from "@/lib/join-schema";
 import { preparePhoto } from "@/lib/photo";
@@ -43,7 +44,7 @@ const questionsFor = (step: Step): Question[] => (step.chapters ?? [])
   .flatMap(id => chapters.find(chapter => chapter.id === id)?.questions ?? [])
   .map(id => questionsById[id]);
 
-const positionText = ({ x, y }: PhotoPosition) => `${Math.round(x)}% ${Math.round(y)}%`;
+export const positionText = ({ x, y }: PhotoPosition) => `${Math.round(x)}% ${Math.round(y)}%`;
 const labelFor = (question: Question, value?: string) => question.options.find(option => option.value === value)?.label ?? "—";
 
 async function isEmailAvailable(email: string) {
@@ -176,6 +177,8 @@ export function JoinForm() {
     try {
       const response = await fetch("/api/join", { method: "POST", body });
       if (response.ok) {
+        const result = (await response.json().catch(() => null)) as { editToken?: string } | null;
+        if (result?.editToken) saveEditToken(result.editToken);
         setDone(true);
         window.scrollTo({ top: 0 });
         return;
@@ -375,7 +378,7 @@ export function JoinForm() {
   </JoinShell>;
 }
 
-function JoinShell({ children }: { children: ReactNode }) {
+export function JoinShell({ children }: { children: ReactNode }) {
   return <MotionConfig reducedMotion="user">
     <div className="join-shell">
       <header className="join-header">
@@ -436,7 +439,7 @@ type FieldProps = {
   children: ReactNode;
 };
 
-function Field({ id, label, icon: Icon, hideLabel, required, hint, error, count, max, children }: FieldProps) {
+export function Field({ id, label, icon: Icon, hideLabel, required, hint, error, count, max, children }: FieldProps) {
   return <div className="join-field" data-invalid={!!error}>
     {label && <div className={hideLabel ? "sr-only" : "join-label-row"}>
       <label htmlFor={id}>
@@ -480,7 +483,7 @@ function ChoiceQuestion({ question, value, onChange }: ChoiceProps) {
 
 type ChipProps = { id: string; values: string[]; invalid: boolean; onChange: (values: string[]) => void };
 
-function ChipInput({ id, values, invalid, onChange }: ChipProps) {
+export function ChipInput({ id, values, invalid, onChange }: ChipProps) {
   const [draft, setDraft] = useState("");
   const full = values.length >= LIMITS.interestsMax;
 

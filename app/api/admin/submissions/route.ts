@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { answersSchema, cardSchema } from "@/lib/join-schema";
 import { isAdminRequest } from "@/lib/server/admin-auth";
-import { collections, type SubmissionDoc } from "@/lib/server/mongo";
+import { cardUpdate } from "@/lib/server/card-update";
+import { collections } from "@/lib/server/mongo";
 
 const actionSchema = z.object({
   email: z.string().min(1),
@@ -13,7 +14,6 @@ const actionSchema = z.object({
 
 /** Admins edit the card's words; the photo and its framing stay as submitted. */
 const editableCardSchema = cardSchema.omit({ photoPosition: true });
-const OPTIONAL_CARD_FIELDS = ["note", "tagline", "bio", "project"] as const;
 
 const gone = () => Response.json({ error: "That submission no longer exists." }, { status: 404 });
 
@@ -30,9 +30,6 @@ export async function POST(request: Request) {
     const answers = answersSchema.safeParse(parsed.data.answers);
     if (!answers.success) return Response.json({ error: "Invalid survey answers." }, { status: 400 });
 
-    const set: Partial<SubmissionDoc> = { answers: answers.data };
-    // Optional fields an admin blanks out are removed, matching how the join form stores them.
-    const unset: Partial<Record<keyof SubmissionDoc, "">> = {};
     let card: z.infer<typeof editableCardSchema> | undefined;
     if (existing.showOnBoard) {
       const result = editableCardSchema.safeParse(parsed.data.card);
@@ -41,17 +38,10 @@ export async function POST(request: Request) {
         return Response.json({ error: `${issue.path[0] ?? "card"}: ${issue.message}` }, { status: 400 });
       }
       card = result.data;
-      set.name = card.name;
-      set.interests = card.interests;
-      for (const key of OPTIONAL_CARD_FIELDS) {
-        const value = card[key];
-        if (value) set[key] = value;
-        else unset[key] = "";
-      }
     }
 
     const result = await submissions.updateOne({ _id: email },
-      { $set: set, ...(Object.keys(unset).length ? { $unset: unset } : {}) });
+      card ? cardUpdate(card, { answers: answers.data }) : { $set: { answers: answers.data } });
     if (!result.matchedCount) return gone();
     return Response.json({ ok: true, card, answers: answers.data });
   }
