@@ -1,11 +1,16 @@
 import { z } from "zod";
+import { cardSchema } from "@/lib/join-schema";
 import { isAdminRequest } from "@/lib/server/admin-auth";
-import { collections } from "@/lib/server/mongo";
+import { collections, type SubmissionDoc } from "@/lib/server/mongo";
 
 const actionSchema = z.object({
   email: z.string().min(1),
-  action: z.enum(["approve", "unapprove", "delete"]),
+  action: z.enum(["approve", "unapprove", "delete", "edit"]),
+  /** Only for "edit": the whole card, checked with the same rules as the join form. */
+  card: z.unknown().optional(),
 });
+
+const OPTIONAL_CARD_FIELDS = ["note", "tagline", "bio", "project"] as const;
 
 const gone = () => Response.json({ error: "That submission no longer exists." }, { status: 404 });
 
@@ -15,6 +20,27 @@ export async function POST(request: Request) {
   if (!parsed.success) return Response.json({ error: "Invalid request." }, { status: 400 });
   const { email, action } = parsed.data;
   const { submissions, photos } = await collections();
+
+  if (action === "edit") {
+    const card = cardSchema.safeParse(parsed.data.card);
+    if (!card.success) {
+      const issue = card.error.issues[0];
+      return Response.json({ error: `${issue.path[0] ?? "card"}: ${issue.message}` }, { status: 400 });
+    }
+    const { name, interests, photoPosition } = card.data;
+    const set: Partial<SubmissionDoc> = { name, interests, photoPosition };
+    // Optional fields an admin blanks out are removed, matching how the join form stores them.
+    const unset: Partial<Record<keyof SubmissionDoc, "">> = {};
+    for (const key of OPTIONAL_CARD_FIELDS) {
+      const value = card.data[key];
+      if (value) set[key] = value;
+      else unset[key] = "";
+    }
+    const result = await submissions.updateOne({ _id: email, showOnBoard: true },
+      { $set: set, ...(Object.keys(unset).length ? { $unset: unset } : {}) });
+    if (!result.matchedCount) return gone();
+    return Response.json({ ok: true, card: card.data });
+  }
 
   if (action === "delete") {
     // Deleting frees the email, so its owner can submit again.
