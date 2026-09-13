@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { AnimatePresence, MotionConfig, animate, motion, useReducedMotion } from "motion/react";
+import { MotionConfig, animate, motion, useInView, useMotionValue, useReducedMotion, useTransform } from "motion/react";
 import { ArrowLeft, ArrowRight, ArrowUpRight, Pause, PenLine, Play, Plus, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -16,83 +16,129 @@ import { MIN_RESPONSES, chapters, questionsById, statKey, type Chapter, type Sur
 const BOARD_SLOTS = 6;
 const ease = [0.16, 1, 0.3, 1] as const;
 
-const slide = {
-  enter: (direction: number) => ({ opacity: 0, x: direction * 28 }),
-  center: { opacity: 1, x: 0 },
-  exit: (direction: number) => ({ opacity: 0, x: direction * -28 }),
-};
+const pad = (value: number) => String(value).padStart(2, "0");
+const percent = (count: number, answered: number) => Math.round(count / answered * 100);
+const chapterAnchor = (chapter: Chapter) => "numbers-" + chapter.id;
 
 function ProfilePhoto({ person, eager = false }: { person: Person; eager?: boolean }) {
   return person.photo ? <img src={person.photo} alt={person.photoAlt || "Profile photo"} width="400" height="460" loading={eager ? "eager" : "lazy"} decoding="async" draggable={false} style={{ objectPosition: person.photoPosition || "center" }}/> : <span className="initials-fallback" style={{ background: person.color, color: person.ink }}>{person.initials}</span>;
 }
 
-/** Counts up from zero when a chart first appears. */
-function CountUp({ value }: { value: number }) {
-  const node = useRef<HTMLSpanElement>(null);
-  const reduceMotion = useReducedMotion();
-  useEffect(() => {
-    if (!node.current || reduceMotion) return;
-    const target = node.current;
-    const controls = animate(0, value, { duration: 1.1, ease, onUpdate: latest => { target.textContent = String(Math.round(latest)); } });
-    return () => controls.stop();
-  }, [value, reduceMotion]);
-  return <span ref={node}>{value}</span>;
+/** True once the element has scrolled into view, so charts draw in as they're reached. */
+function useSeen<T extends Element>() {
+  const ref = useRef<T>(null);
+  const seen = useInView(ref, { once: true, amount: 0.25 });
+  return [ref, seen] as const;
 }
 
-function SurveyPanel({ chapter, survey }: { chapter: Chapter; survey: SurveySummary }) {
-  const [page, setPage] = useState(0);
-  const [direction, setDirection] = useState(1);
-  const question = questionsById[chapter.bars[page]];
-  // Questions are optional, so every number is out of the people who answered that question.
-  const chart = survey.bars[question.id];
-  const largest = Math.max(1, ...(chart?.bars ?? []).map(bar => bar.count));
+/** Counts up from zero once `start` turns true. Hidden from screen readers, which get the plain number beside it. */
+function CountUp({ value, start }: { value: number; start: boolean }) {
+  const count = useMotionValue(0);
+  const text = useTransform(count, latest => String(Math.round(latest)));
+  const reduceMotion = useReducedMotion();
+  useEffect(() => {
+    if (!start) return;
+    if (reduceMotion) { count.jump(value); return; }
+    const controls = animate(count, value, { duration: 1.1, ease });
+    return () => controls.stop();
+  }, [count, value, start, reduceMotion]);
+  return <motion.span aria-hidden="true">{text}</motion.span>;
+}
+
+/** The chapter's two headline numbers: a count, and a share as a donut. */
+function ChapterHighlights({ chapter, survey }: { chapter: Chapter; survey: SurveySummary }) {
+  const [ref, seen] = useSeen<HTMLDivElement>();
   const stat = survey.stats[statKey(chapter.stat.question, chapter.stat.option)];
   const donut = survey.stats[statKey(chapter.donut.question, chapter.donut.option)];
-  const donutPercent = donut ? Math.round(donut.count / donut.answered * 100) : 0;
+  const donutShare = donut ? percent(donut.count, donut.answered) : 0;
 
-  const turn = (step: number) => {
-    setDirection(step);
-    setPage(current => (current + step + chapter.bars.length) % chapter.bars.length);
-  };
-
-  return <div className="survey-grid">
-    <article className="chart-paper">
-      <div className="chart-top">
-        <p className="chart-kicker">{chapter.label}</p>
-        {chapter.bars.length > 1 && <div className="chart-pager">
-          <button type="button" onClick={() => turn(-1)} aria-label="Previous question"><ArrowLeft size={15}/></button>
-          <span aria-live="polite">{page + 1} / {chapter.bars.length}</span>
-          <button type="button" onClick={() => turn(1)} aria-label="Next question"><ArrowRight size={15}/></button>
-        </div>}
-      </div>
-      <AnimatePresence mode="wait" initial={false} custom={direction}>
-        <motion.div key={question.id} className="chart-body" custom={direction} variants={slide} initial="enter" animate="center" exit="exit" transition={{ duration: 0.28, ease }}>
-          <h3>{question.chartTitle}</h3>
-          {chart
-            ? <div className="bar-chart" role="list" aria-label={question.chartTitle}>
-                {chart.bars.map((answer, index) => <div className="bar-item" role="listitem" key={answer.label}>
-                  <div className="bar-label"><span>{answer.label}</span><span>{answer.count}<small> / {chart.answered}</small></span></div>
-                  <div className="bar-track" aria-hidden="true"><div className={"bar-fill bar-" + index} style={{ width: (answer.count / largest * 100) + "%", "--i": index } as CSSProperties}/></div>
-                </div>)}
-              </div>
-            : <p className="chart-empty">not enough answers yet.</p>}
-        </motion.div>
-      </AnimatePresence>
-      <p className="chart-footnote">{chart ? `${chart.answered} answered · one answer per person` : `shows up at ${MIN_RESPONSES} answers`}</p>
+  return <div ref={ref} className="chapter-highlights">
+    <article className="profile-card stat-card">
+      <p className="card-kicker">{chapter.stat.eyebrow}</p>
+      <p className="big-stat">{stat
+        ? <><CountUp value={stat.count} start={seen}/><span className="stat-of" aria-hidden="true">of {stat.answered}</span><span className="sr-only">{stat.count} of {stat.answered}</span></>
+        : "–"}</p>
+      <h3>{chapter.stat.label}</h3>
     </article>
-    <div className="survey-side">
-      <article className="number-paper">
-        <p className="chart-kicker">{chapter.stat.eyebrow}</p>
-        <p className="big-stat">{stat ? <><CountUp value={stat.count}/><span>/{stat.answered}</span></> : "–"}</p>
-        <h3>{chapter.stat.label}</h3>
-      </article>
-      <article className="donut-paper">
-        <div className="donut" style={{ "--progress": donutPercent + "%" } as CSSProperties} role="img"
-          aria-label={donut ? `${donut.count} of ${donut.answered} who answered: ${chapter.donut.label}` : `${chapter.donut.label}: not enough answers yet`}>
-          <span>{donut ? <><CountUp value={donutPercent}/><small>%</small></> : "–"}</span>
-        </div>
-        <div><h3>{chapter.donut.label}</h3><p>{donut ? `${donut.count} of ${donut.answered} answered` : "not enough answers yet"}</p></div>
-      </article>
+    <article className="profile-card donut-card">
+      <div className="donut" style={{ "--progress": (seen ? donutShare : 0) + "%" } as CSSProperties} role="img"
+        aria-label={donut ? `${chapter.donut.label}: ${donutShare}%, ${donut.count} of ${donut.answered}` : `${chapter.donut.label}: not enough answers yet`}>
+        <span aria-hidden="true">{donut ? <><CountUp value={donutShare} start={seen}/><small>%</small></> : "–"}</span>
+      </div>
+      <div><h3>{chapter.donut.label}</h3><p>{donut ? `${donut.count} of ${donut.answered}` : "not enough answers yet"}</p></div>
+    </article>
+  </div>;
+}
+
+function BarChart({ id, survey }: { id: string; survey: SurveySummary }) {
+  const [ref, seen] = useSeen<HTMLElement>();
+  const question = questionsById[id];
+  // Questions are optional, so every percentage is out of the people who answered that question.
+  const chart = survey.bars[id];
+
+  return <article ref={ref} className="profile-card chart-card" data-seen={seen || undefined}>
+    <h3>{question.chartTitle}</h3>
+    {chart
+      ? <ol className="bar-chart" aria-label={question.chartTitle}>
+          {chart.bars.map((bar, index) => {
+            const share = percent(bar.count, chart.answered);
+            return <li className="bar-item" key={bar.label}>
+              <div className="bar-label"><span>{bar.label}</span><span>{share}%</span></div>
+              <div className="bar-track" aria-hidden="true"><div className={"bar-fill bar-" + index} style={{ width: share + "%", "--i": index } as CSSProperties}/></div>
+            </li>;
+          })}
+        </ol>
+      : <p className="chart-empty">not enough answers yet. this shows up at {MIN_RESPONSES}.</p>}
+  </article>;
+}
+
+function ProfileChapter({ chapter, index, survey }: { chapter: Chapter; index: number; survey: SurveySummary }) {
+  const anchor = chapterAnchor(chapter);
+  return <section id={anchor} className="profile-chapter" aria-labelledby={anchor + "-title"}>
+    <header className="chapter-heading">
+      <p className="chapter-number">{pad(index + 1)} / {pad(chapters.length)}</p>
+      <h2 id={anchor + "-title"}>{chapter.label}</h2>
+      <p>{chapter.blurb}</p>
+    </header>
+    <ChapterHighlights chapter={chapter} survey={survey}/>
+    <div className="chapter-charts">
+      {chapter.bars.map(id => <BarChart key={id} id={id} survey={survey}/>)}
+    </div>
+  </section>;
+}
+
+/** Every chapter on one page, read top to bottom, with a contents list that follows along. */
+function ClassProfile({ survey, joined }: { survey: SurveySummary; joined: boolean }) {
+  const [current, setCurrent] = useState(chapters[0].id);
+
+  useEffect(() => {
+    // The chapter passing just above the middle of the window is the one being read.
+    const observer = new IntersectionObserver(entries => {
+      for (const entry of entries) if (entry.isIntersecting) setCurrent(entry.target.id.replace("numbers-", ""));
+    }, { rootMargin: "-35% 0px -60% 0px" });
+    for (const chapter of chapters) {
+      const section = document.getElementById(chapterAnchor(chapter));
+      if (section) observer.observe(section);
+    }
+    return () => observer.disconnect();
+  }, []);
+
+  return <div className="numbers">
+    <nav className="numbers-rail" aria-label="Class profile chapters">
+      <p>chapters</p>
+      <ol>
+        {chapters.map((chapter, index) => <li key={chapter.id}>
+          <a href={"#" + chapterAnchor(chapter)} aria-current={current === chapter.id ? "location" : undefined}><span>{pad(index + 1)}</span>{chapter.label}</a>
+        </li>)}
+      </ol>
+    </nav>
+    <div className="numbers-chapters">
+      {chapters.map((chapter, index) => <ProfileChapter key={chapter.id} chapter={chapter} index={index} survey={survey}/>)}
+      <aside className="numbers-outro">
+        {joined
+          ? <><p className="handwritten">thanks for being in here.</p><h2>the numbers update as more of us add our answers.</h2></>
+          : <><p className="handwritten">not in here yet?</p><h2>every answer makes these numbers a little more us.</h2><a className="join-cta" href="/join">add yours <ArrowUpRight size={16} aria-hidden="true"/></a></>}
+      </aside>
     </div>
   </div>;
 }
@@ -199,16 +245,14 @@ export function Home({ people, survey }: { people: Person[]; survey: SurveySumma
         </Dialog>
       </TabsContent>
 
-      <TabsContent value="profile" className="inner-page">
-        <div className="inner-heading"><h1>us, in numbers</h1></div>
-        <div className="inner-heading"><p>of course we love numbers...</p></div>
+      <TabsContent value="profile" className="inner-page profile-page">
+        <div className="inner-heading numbers-heading">
+          <h1>us, in numbers</h1>
+          <p className="numbers-note">of course we love numbers...</p>
+          {survey.ready && <p className="numbers-lede">{survey.total} of us answered a few questions when we joined. Scroll down to see where we came from, how we learn, and where we’re headed. Every question was optional, so each number is out of the people who answered it.</p>}
+        </div>
         {survey.ready
-          ? <Tabs defaultValue={chapters[0].id} className="survey-tabs">
-              <TabsList aria-label="Survey chapters" className="chapter-tabs" variant="line">
-                {chapters.map(chapter => <TabsTrigger value={chapter.id} key={chapter.id}>{chapter.label}</TabsTrigger>)}
-              </TabsList>
-              {chapters.map(chapter => <TabsContent value={chapter.id} key={chapter.id}><SurveyPanel chapter={chapter} survey={survey}/></TabsContent>)}
-            </Tabs>
+          ? <ClassProfile survey={survey} joined={Boolean(editToken)}/>
           : <SurveyCollecting total={survey.total}/>}
       </TabsContent>
 
