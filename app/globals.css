@@ -49,10 +49,10 @@ img{display:block;max-width:100%}
 .polaroid{position:relative;display:block;width:100%;padding:9px 9px 13px;background:#fffefa;color:var(--ink);border:1px solid #eeede8;border-radius:0;text-align:left;box-shadow:0 3px 5px #15120a0d,0 12px 22px -8px #15120a2b;transform:rotate(var(--tilt));transition:transform .2s ease,box-shadow .2s ease;will-change:transform}
 .polaroid:hover,.polaroid:focus-visible{transform:translateY(-9px) rotate(0deg) scale(1.025);box-shadow:0 5px 10px #15120a10,0 20px 30px -8px #15120a30}
 .photo-0{left:1%;top:40px;--tilt:-9deg}
-.photo-1{left:18%;top:4px;--tilt:6deg}
+.photo-1{left:22%;top:4px;--tilt:6deg}
 .photo-2{right:1%;top:24px;--tilt:8deg}
 .photo-3{left:12%;bottom:14px;--tilt:5deg}
-.photo-4{right:18%;bottom:26px;--tilt:-7deg}
+.photo-4{right:20.5%;bottom:26px;--tilt:-7deg}
 .photo-5{right:0;bottom:4px;--tilt:-5deg}
 .photo-window{position:relative;display:block;width:100%;aspect-ratio:1/1.07;overflow:hidden;background:#e7e6df}
 .photo-window>img{width:100%;height:100%;object-fit:cover}
