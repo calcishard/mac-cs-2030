@@ -147,6 +147,8 @@ export const questionsById: Record<string, Question> = Object.fromEntries(questi
 export type Chapter = {
   id: string;
   label: string;
+  /** One line under the chapter heading on the class profile. */
+  blurb: string;
   /** Questions asked on the form, in order. */
   questions: readonly string[];
   /** Choice questions shown as bar charts. */
@@ -158,6 +160,7 @@ export type Chapter = {
 export const chapters: readonly Chapter[] = [
   {
     id: "before", label: "before mac",
+    blurb: "Where we grew up, and what we knew before we got here.",
     questions: ["hometown", "coded_before", "been_to_hamilton", "first_language", "why_mac", "living"],
     bars: ["hometown", "first_language", "why_mac", "living"],
     stat: { question: "coded_before", option: "yes", eyebrow: "before our first lecture,", label: "had tried coding before Mac." },
@@ -165,6 +168,7 @@ export const chapters: readonly Chapter[] = [
   },
   {
     id: "academics", label: "in class",
+    blurb: "How we like to learn, and what we learn on.",
     questions: ["subfield", "learn_by_building", "study_in_group", "laptop_os", "editor"],
     bars: ["subfield", "laptop_os", "editor"],
     stat: { question: "learn_by_building", option: "yes", eyebrow: "out of all of our learning styles,", label: "learn best by building something." },
@@ -172,6 +176,7 @@ export const chapters: readonly Chapter[] = [
   },
   {
     id: "life", label: "outside class",
+    blurb: "What fills the hours between lectures.",
     questions: ["outside_interest", "morning_person", "club_or_team", "fuel"],
     bars: ["outside_interest", "fuel"],
     stat: { question: "morning_person", option: "yes", eyebrow: "even though we all have 8:30 am lectures, only", label: "would call themselves morning people." },
@@ -179,6 +184,7 @@ export const chapters: readonly Chapter[] = [
   },
   {
     id: "coop", label: "co-op",
+    blurb: "Where we think we’re headed after Mac.",
     questions: ["planning_coop", "dream_path"],
     bars: ["dream_path"],
     stat: { question: "planning_coop", option: "yes", eyebrow: "looking ahead,", label: "are planning to do co-op." },

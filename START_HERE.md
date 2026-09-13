@@ -9,7 +9,7 @@ Live site: https://mac-cs-2030.vercel.app
 
 | What you want to change | File |
 | --- | --- |
-| Survey questions, answer options, chart titles, and which charts each tab shows | `lib/survey.ts` |
+| Survey questions, answer options, chart titles, and which charts each class profile chapter shows | `lib/survey.ts` |
 | Form field limits and the name/email rules | `lib/join-rules.ts`, validated by `lib/join-schema.ts` |
 | The join form, its live polaroid preview, and the success animation | `components/join/` |
 | Home page: board, profile dialog, charts, About text | `components/home.tsx` |
