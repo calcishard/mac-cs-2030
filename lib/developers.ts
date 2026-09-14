@@ -17,4 +17,9 @@ export const developers: readonly SiteDeveloper[] = [
     name: "Naman Sonawane",
     photo: "naman-sonawane.jpg",
   },
+  {
+    id: "aayan-wasti",
+    name: "Aayan Wasti",
+    photo: "aayan-wasti.png",
+  },
 ];
