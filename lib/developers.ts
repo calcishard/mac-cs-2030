@@ -5,7 +5,7 @@ export type SiteDeveloper = {
   photoPosition?: string;
 };
 
-/** Add portrait files to public/developers, then set each person's photo path. */
+/** Add portrait files to public/developers, then set each person's photo path.. */
 export const developers: readonly SiteDeveloper[] = [
   {
     id: "jason-tran",
