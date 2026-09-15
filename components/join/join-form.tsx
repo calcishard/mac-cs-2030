@@ -225,6 +225,9 @@ export function JoinForm() {
               onChange={event => { setEmail(event.target.value); clearError("email"); }} />
           </div>
         </Field>
+        {errors.email === TAKEN && <p className="join-hint edit-pointer">
+          that you? <Link className="join-inline-link" href="/join/edit">get an edit link by email</Link>
+        </p>}
       </div>
     </>;
 

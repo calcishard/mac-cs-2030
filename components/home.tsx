@@ -177,9 +177,10 @@ export function Home({ people, survey }: { people: Person[]; survey: SurveySumma
           <TabsTrigger value="profile">class profile</TabsTrigger>
           <TabsTrigger value="about">about</TabsTrigger>
         </TabsList>
-        {editToken
-          ? <a className="join-link" href="/join/edit"><PenLine size={14} aria-hidden="true"/>edit yours</a>
-          : <a className="join-link" href="/join"><Plus size={14} aria-hidden="true"/>add yours</a>}
+        <div className="header-actions">
+          {!editToken && <a className="join-link" href="/join"><Plus size={14} aria-hidden="true"/>add yours</a>}
+          <a className={editToken ? "join-link" : "join-link quiet"} href="/join/edit"><PenLine size={14} aria-hidden="true"/>edit yours</a>
+        </div>
       </div>
       {view === "people" ? <div className="people-tools">
         <PeopleSearch people={people} onSelect={(member, input) => {

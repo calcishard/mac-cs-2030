@@ -4,9 +4,9 @@ import { EMAIL_PATTERN, NAME_PATTERN, PHOTO_POSITION_PATTERN, formatName, normal
 
 test("emails are trimmed and lowercased, and only their shape is checked", () => {
   assert.equal(normalizeEmail("  SmithJ12@McMaster.ca "), "smithj12@mcmaster.ca");
-  // Admins decide whether an address is really a McMaster one.
-  for (const valid of ["smithj12@mcmaster.ca", "someone@gmail.com"]) assert.ok(EMAIL_PATTERN.test(valid), valid);
-  for (const invalid of ["smithj12", "smith j@mcmaster.ca", "a@b", "@mcmaster.ca"]) assert.ok(!EMAIL_PATTERN.test(invalid), invalid);
+  // Only mcmaster.ca addresses get in.
+  for (const valid of ["smithj12@mcmaster.ca", "first.last@mcmaster.ca"]) assert.ok(EMAIL_PATTERN.test(valid), valid);
+  for (const invalid of ["smithj12", "smith j@mcmaster.ca", "a@b", "@mcmaster.ca", "someone@gmail.com", "x@mcmaster.ca.evil.com"]) assert.ok(!EMAIL_PATTERN.test(invalid), invalid);
 });
 
 test("multiline text keeps its line breaks but not extra blank lines", () => {
