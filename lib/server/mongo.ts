@@ -19,6 +19,11 @@ export type SubmissionDoc = {
   photoPosition?: string;
   /** Hash of the token that lets the person who added this card edit it. */
   editTokenHash?: string;
+  /** Hash of the one-time token in an emailed edit link, and when it stops working. */
+  linkTokenHash?: string;
+  linkTokenExpiresAt?: Date;
+  /** When the last edit link was emailed, so repeat requests don't send again right away. */
+  linkSentAt?: Date;
   answers: Partial<SurveyAnswers>;
   createdAt: Date;
   approvedAt: Date | null;
@@ -40,6 +45,7 @@ async function connect(uri: string) {
     submissions.createIndex({ status: 1, createdAt: -1 }),
     // Sparse, since cards added before editing existed have no token.
     submissions.createIndex({ editTokenHash: 1 }, { unique: true, sparse: true }),
+    submissions.createIndex({ linkTokenHash: 1 }, { unique: true, sparse: true }),
   ]);
   return db;
 }

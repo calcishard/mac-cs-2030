@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowLeft, Check, Hammer, LoaderCircle, MessageCircle, PenLine, Plus, Sparkles, Tag, Trash2, User } from "lucide-react";
+import { ArrowLeft, Check, Hammer, LoaderCircle, Mail, MessageCircle, PenLine, Plus, Send, Sparkles, Tag, Trash2, User } from "lucide-react";
 import { ChipInput, Field, JoinShell, positionText } from "@/components/join/join-form";
 import { PolaroidPreview, type PhotoPosition } from "@/components/join/polaroid-preview";
-import { forgetEditToken, useEditToken } from "@/hooks/use-edit-token";
+import { forgetEditToken, saveEditToken, useEditToken } from "@/hooks/use-edit-token";
 import { LIMITS, formatName } from "@/lib/join-rules";
-import { cardSchema } from "@/lib/join-schema";
+import { cardSchema, emailSchema } from "@/lib/join-schema";
 
 type Card = { name: string; note: string; tagline: string; bio: string; project: string; interests: string[] };
 type Loaded = { card: Card; photo?: string; position: PhotoPosition; approved: boolean };
@@ -21,12 +21,17 @@ function parsePosition(text: string): PhotoPosition {
   return { x: x ?? 50, y: y ?? 50 };
 }
 
-const request = (method: "POST" | "PATCH" | "DELETE", body: object) =>
-  fetch("/api/join/edit", { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+const request = (method: "POST" | "PATCH" | "DELETE", body: object, path = "/api/join/edit") =>
+  fetch(path, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 
-/** Lets someone change the polaroid they added from this browser. */
+/** The token from an emailed link, read once so it can be swapped for this browser's own edit token. */
+const linkToken = () => typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("token");
+
+/** Lets someone change their polaroid, from the browser it was added on or through an emailed link. */
 export function EditPolaroid() {
   const token = useEditToken();
+  // "claiming" while an emailed link is being exchanged; a string is the message when that fails.
+  const [claim, setClaim] = useState<"claiming" | string | null>(() => (linkToken() ? "claiming" : null));
   const [loaded, setLoaded] = useState<Loaded | "missing" | null>(null);
   const [card, setCard] = useState<Card | null>(null);
   const [position, setPosition] = useState<PhotoPosition>({ x: 50, y: 50 });
@@ -35,8 +40,28 @@ export function EditPolaroid() {
   const [busy, setBusy] = useState<"saving" | "deleting" | null>(null);
   const [done, setDone] = useState<"saved" | "deleted" | null>(null);
 
+  // An emailed link becomes this browser's edit token, then the address bar is tidied so a refresh doesn't retry.
   useEffect(() => {
-    if (!token) return;
+    const fromLink = linkToken();
+    if (!fromLink) return;
+    let cancelled = false;
+    request("POST", { token: fromLink }, "/api/join/edit/claim")
+      .then(async response => {
+        if (cancelled) return;
+        const body = (await response.json().catch(() => null)) as { editToken?: string; error?: string } | null;
+        if (response.ok && body?.editToken) {
+          window.history.replaceState(null, "", "/join/edit");
+          saveEditToken(body.editToken);
+          return setClaim(null);
+        }
+        setClaim(body?.error?.toLowerCase() ?? "something went wrong. try again.");
+      })
+      .catch(() => { if (!cancelled) setClaim(OFFLINE); });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!token || claim === "claiming") return;
     let cancelled = false;
     request("POST", { token })
       .then(async response => {
@@ -56,7 +81,7 @@ export function EditPolaroid() {
       })
       .catch(() => { if (!cancelled) setFormError(OFFLINE); });
     return () => { cancelled = true; };
-  }, [token]);
+  }, [token, claim]);
 
   function updateCard<K extends keyof Card>(key: K, value: Card[K]) {
     setCard(current => current && { ...current, [key]: value });
@@ -131,7 +156,7 @@ export function EditPolaroid() {
     </div>
   </JoinShell>;
 
-  const missing = token === null || loaded === "missing";
+  const missing = claim !== "claiming" && (token === null || loaded === "missing");
   const ready = loaded && loaded !== "missing" && card ? loaded : null;
   const changed = ready && card
     && JSON.stringify([card, positionText(position)]) !== JSON.stringify([ready.card, positionText(ready.position)]);
@@ -141,17 +166,14 @@ export function EditPolaroid() {
       <h1>edit your<br />polaroid.</h1>
     </div>
     {missing
-      ? <div className="edit-missing">
-          <p className="join-lede">this browser doesn’t have a polaroid to edit. a polaroid can only be edited from the browser it was added on.</p>
-          <div className="edit-links">
-            <Link className="join-button primary" href="/join"><Plus size={16} aria-hidden="true" /> add yours</Link>
-            <Link className="join-button ghost" href="/"><ArrowLeft size={16} aria-hidden="true" /> back to the board</Link>
-          </div>
-        </div>
+      ? <RequestLink problem={typeof claim === "string" ? claim : undefined} />
       : !ready
         ? formError
           ? <p className="join-form-error" role="alert">{formError}</p>
-          : <p className="join-lede edit-loading"><LoaderCircle className="join-spinner" size={16} aria-hidden="true" /> finding your polaroid…</p>
+          : <p className="join-lede edit-loading">
+              <LoaderCircle className="join-spinner" size={16} aria-hidden="true" />
+              {claim === "claiming" ? " opening your link…" : " finding your polaroid…"}
+            </p>
         : card && <div className="join-layout">
             <form className="join-form" noValidate onSubmit={event => void save(event)}>
               <section className="join-step">
@@ -210,4 +232,62 @@ export function EditPolaroid() {
             </aside>
           </div>}
   </JoinShell>;
+}
+
+/** Shown when this browser has no edit token: ask for a link by email instead. */
+function RequestLink({ problem }: { problem?: string }) {
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
+
+  async function send(event: FormEvent) {
+    event.preventDefault();
+    if (state === "sending") return;
+    const parsed = emailSchema.safeParse(email);
+    if (!parsed.success) return setError(parsed.error.issues[0].message);
+    setState("sending");
+    setError("");
+    try {
+      const response = await request("POST", { email: parsed.data }, "/api/join/edit/link");
+      if (response.ok) return setState("sent");
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      setError(body?.error?.toLowerCase() ?? "something went wrong. try again.");
+      setState("idle");
+    } catch {
+      setError(OFFLINE);
+      setState("idle");
+    }
+  }
+
+  return <div className="edit-missing">
+    {problem && <p className="join-form-error edit-problem" role="alert">{problem}</p>}
+    {state === "sent"
+      ? <>
+          <p className="handwritten edit-sent-note">sent</p>
+          <p className="join-lede">check your mac inbox (and junk, the first time). the link works once and expires in 30 minutes.</p>
+        </>
+      : <>
+          <p className="join-lede">enter your mac email and we’ll send you a link to edit your polaroid from here.</p>
+          <form className="join-form edit-request" noValidate onSubmit={event => void send(event)}>
+            <div className="join-fields">
+              <Field id="edit-email" label="mac email" hideLabel error={error}>
+                <div className="join-input-group">
+                  <Mail size={18} aria-hidden="true" />
+                  <input id="edit-email" type="email" inputMode="email" value={email} placeholder="smithj12@mcmaster.ca" autoComplete="email"
+                    autoCapitalize="none" spellCheck={false} required aria-invalid={!!error}
+                    onChange={event => { setEmail(event.target.value); setError(""); }} />
+                </div>
+              </Field>
+            </div>
+            <button type="submit" className="join-button primary" disabled={state === "sending"}>
+              {state === "sending" ? <LoaderCircle className="join-spinner" size={16} aria-hidden="true" /> : <Send size={16} aria-hidden="true" />}
+              {state === "sending" ? "sending…" : "email me an edit link"}
+            </button>
+          </form>
+        </>}
+    <div className="edit-links">
+      <Link className="join-button" href="/join"><Plus size={16} aria-hidden="true" /> add yours</Link>
+      <Link className="join-button ghost" href="/"><ArrowLeft size={16} aria-hidden="true" /> back to the board</Link>
+    </div>
+  </div>;
 }

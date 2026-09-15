@@ -438,8 +438,11 @@ img{display:block;max-width:100%}
 .nav-cluster{display:flex;align-items:center;gap:28px}
 .join-link{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 11px 0 8px;border:1px solid var(--maroon);color:var(--maroon);font-size:13px;font-weight:500;white-space:nowrap;transition:background .2s,color .2s}
 .join-link:hover{background:var(--maroon);color:#fff}
+.header-actions{display:flex;align-items:center;gap:8px}
+.join-link.quiet{border-color:#cac8c1;color:#65645e}
+.join-link.quiet:hover{border-color:var(--maroon);background:var(--maroon);color:#fff}
 @media(max-width:1000px){.site-header{row-gap:6px;padding-block:10px}.nav-cluster{grid-column:1/-1;grid-row:2;justify-self:center;gap:20px}}
-@media(max-width:620px){.nav-cluster{gap:14px}.join-link{height:28px;padding:0 8px 0 6px;font-size:12px}}
+@media(max-width:620px){.nav-cluster{gap:14px}.header-actions{gap:6px}.join-link{height:28px;padding:0 8px 0 6px;font-size:12px}}
 @media(max-width:370px){.nav-cluster{gap:10px}.join-link{font-size:11px}}
 
 /* Cards land one after another, and can be picked up and thrown. */
@@ -589,6 +592,13 @@ textarea.join-input{min-height:96px;resize:vertical;line-height:1.6}
 .success-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:28px}
 /* Editing your own polaroid. */
 .edit-missing{margin-top:30px}
+.edit-request{margin-top:24px;max-width:420px}
+.edit-request .join-button{margin-top:22px}
+.edit-problem{margin-top:0;margin-bottom:18px}
+.edit-sent-note{width:fit-content;margin:0 0 4px;font-size:32px;line-height:1.1;color:var(--maroon);transform:rotate(-3deg);transform-origin:left bottom}
+.edit-pointer{margin-top:8px}
+.join-inline-link{color:var(--maroon);text-decoration:underline;text-underline-offset:3px}
+.join-inline-link:hover{color:#5c1627}
 .edit-links{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
 .edit-loading{display:flex;align-items:center;gap:8px;margin-top:30px}
 .edit-action-group{display:flex;flex-wrap:wrap;gap:10px}

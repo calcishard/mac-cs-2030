@@ -1,5 +1,6 @@
 // Someone who adds a polaroid gets a secret token, kept in their browser, that lets them edit it later.
 // Only its hash is stored, so reading the database doesn't let anyone edit a card.
+// The same helpers make the short-lived tokens in emailed edit links.
 
 export function newEditToken() {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
